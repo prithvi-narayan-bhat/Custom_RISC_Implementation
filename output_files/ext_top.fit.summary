@@ -1,4 +1,4 @@
-Fitter Status : Successful - Mon Feb  6 21:20:35 2023
+Fitter Status : Successful - Wed Feb  8 21:26:35 2023
 Quartus Prime Version : 22.1std.0 Build 915 10/25/2022 SC Lite Edition
 Revision Name : ext_top
 Top-level Entity Name : ext_top
@@ -9,7 +9,7 @@ Total logic elements : 4,209 / 49,760 ( 8 % )
     Total combinational functions : 1,426 / 49,760 ( 3 % )
     Dedicated logic registers : 3,943 / 49,760 ( 8 % )
 Total registers : 3943
-Total pins : 164 / 360 ( 46 % )
+Total pins : 196 / 360 ( 54 % )
 Total virtual pins : 0
 Total memory bits : 38,144 / 1,677,312 ( 2 % )
 Embedded Multiplier 9-bit elements : 0 / 288 ( 0 % )

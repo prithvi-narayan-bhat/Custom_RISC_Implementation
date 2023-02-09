@@ -1,5 +1,5 @@
 Analysis & Synthesis report for ext_top
-Wed Feb  8 18:43:36 2023
+Thu Feb  9 19:58:48 2023
 Quartus Prime Version 22.1std.0 Build 915 10/25/2022 SC Lite Edition
 
 
@@ -37,7 +37,7 @@ https://fpgasoftware.intel.com/eula.
 +-------------------------------------------------------------------------------------+
 ; Analysis & Synthesis Summary                                                        ;
 +------------------------------------+------------------------------------------------+
-; Analysis & Synthesis Status        ; Failed - Wed Feb  8 18:43:36 2023              ;
+; Analysis & Synthesis Status        ; Failed - Thu Feb  9 19:58:48 2023              ;
 ; Quartus Prime Version              ; 22.1std.0 Build 915 10/25/2022 SC Lite Edition ;
 ; Revision Name                      ; ext_top                                        ;
 ; Top-level Entity Name              ; ext_top                                        ;
@@ -164,32 +164,34 @@ https://fpgasoftware.intel.com/eula.
 Info: *******************************************************************
 Info: Running Quartus Prime Analysis & Synthesis
     Info: Version 22.1std.0 Build 915 10/25/2022 SC Lite Edition
-    Info: Processing started: Wed Feb  8 18:43:30 2023
+    Info: Processing started: Thu Feb  9 19:58:42 2023
 Info: Command: quartus_map --read_settings_files=on --write_settings_files=off ext_top -c ext_top
 Warning (18236): Number of processors has not been specified which may cause overloading on shared machines.  Set the global assignment NUM_PARALLEL_PROCESSORS in your QSF to an appropriate value for best performance.
 Info (20030): Parallel compilation is enabled and will use 16 of the 16 processors detected
-Error (10170): Verilog HDL syntax error at ext_top.sv(19) near text: "reg";  expecting "(". Check for and fix any syntax errors that appear immediately before or at the specified keyword. The Intel FPGA Knowledge Database contains many articles with specific details on how to resolve this error. Visit the Knowledge Database at https://www.altera.com/support/support-resources/knowledge-base/search.html and search for this specific error message number. File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 19
-Warning (10090): Verilog HDL syntax warning at ext_top.sv(29): extra block comment delimiter characters /* within block comment File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 29
-Warning (10229): Verilog HDL Expression warning at ext_top.sv(49): truncated literal to match 2 bits File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 49
-Warning (10229): Verilog HDL Expression warning at ext_top.sv(54): truncated literal to match 2 bits File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 54
-Warning (10229): Verilog HDL Expression warning at ext_top.sv(75): truncated literal to match 2 bits File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 75
-Warning (10229): Verilog HDL Expression warning at ext_top.sv(79): truncated literal to match 2 bits File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 79
-Warning (10229): Verilog HDL Expression warning at ext_top.sv(82): truncated literal to match 2 bits File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 82
-Warning (10229): Verilog HDL Expression warning at ext_top.sv(86): truncated literal to match 2 bits File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 86
-Warning (10229): Verilog HDL Expression warning at ext_top.sv(90): truncated literal to match 2 bits File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 90
-Warning (10229): Verilog HDL Expression warning at ext_top.sv(97): truncated literal to match 2 bits File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 97
-Error (10170): Verilog HDL syntax error at ext_top.sv(105) near text: ":";  expecting ";". Check for and fix any syntax errors that appear immediately before or at the specified keyword. The Intel FPGA Knowledge Database contains many articles with specific details on how to resolve this error. Visit the Knowledge Database at https://www.altera.com/support/support-resources/knowledge-base/search.html and search for this specific error message number. File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 105
-Warning (10229): Verilog HDL Expression warning at ext_top.sv(107): truncated literal to match 2 bits File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 107
-Error (10170): Verilog HDL syntax error at ext_top.sv(107) near text: ":";  expecting ";". Check for and fix any syntax errors that appear immediately before or at the specified keyword. The Intel FPGA Knowledge Database contains many articles with specific details on how to resolve this error. Visit the Knowledge Database at https://www.altera.com/support/support-resources/knowledge-base/search.html and search for this specific error message number. File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 107
-Error (10170): Verilog HDL syntax error at ext_top.sv(109) near text: "endcase";  expecting an operand. Check for and fix any syntax errors that appear immediately before or at the specified keyword. The Intel FPGA Knowledge Database contains many articles with specific details on how to resolve this error. Visit the Knowledge Database at https://www.altera.com/support/support-resources/knowledge-base/search.html and search for this specific error message number. File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 109
-Warning (10229): Verilog HDL Expression warning at ext_top.sv(112): truncated literal to match 2 bits File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 112
-Error (10112): Ignored design unit "ext_top" at ext_top.sv(1) due to previous errors File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 1
-Error (10112): Ignored design unit "seq_logic" at ext_top.sv(149) due to previous errors File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 149
-Error (10112): Ignored design unit "divide_by_50000000" at ext_top.sv(202) due to previous errors File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Labs/Lab2/Lab2_files/ext_top.sv Line: 202
+Warning (10090): Verilog HDL syntax warning at ext_top.sv(54): extra block comment delimiter characters /* within block comment File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 54
+Error (10170): Verilog HDL syntax error at ext_top.sv(71) near text: "opcde";  expecting ")". Check for and fix any syntax errors that appear immediately before or at the specified keyword. The Intel FPGA Knowledge Database contains many articles with specific details on how to resolve this error. Visit the Knowledge Database at https://www.altera.com/support/support-resources/knowledge-base/search.html and search for this specific error message number. File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 71
+Error (10149): Verilog HDL Declaration error at ext_top.sv(79): identifier "FUNC7_SUB" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 79
+Error (10149): Verilog HDL Declaration error at ext_top.sv(84): identifier "FUNC3_SLL" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 84
+Error (10149): Verilog HDL Declaration error at ext_top.sv(86): identifier "FUNC3_SLT" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 86
+Error (10149): Verilog HDL Declaration error at ext_top.sv(93): identifier "FUNC3_SLTU" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 93
+Error (10149): Verilog HDL Declaration error at ext_top.sv(100): identifier "FUNC3_XOR" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 100
+Error (10149): Verilog HDL Declaration error at ext_top.sv(104): identifier "FUNC3_FIV" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 104
+Error (10149): Verilog HDL Declaration error at ext_top.sv(107): identifier "FUNC7_SRA" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 107
+Error (10149): Verilog HDL Declaration error at ext_top.sv(111): identifier "FUNC3_ORR" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 111
+Error (10149): Verilog HDL Declaration error at ext_top.sv(115): identifier "FUNC3_AND" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 115
+Error (10149): Verilog HDL Declaration error at ext_top.sv(124): identifier "i1" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 124
+Error (10149): Verilog HDL Declaration error at ext_top.sv(130): identifier "i1" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 130
+Error (10149): Verilog HDL Declaration error at ext_top.sv(132): identifier "temp2" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 132
+Error (10149): Verilog HDL Declaration error at ext_top.sv(136): identifier "i1" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 136
+Error (10149): Verilog HDL Declaration error at ext_top.sv(138): identifier "temp2" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 138
+Error (10149): Verilog HDL Declaration error at ext_top.sv(142): identifier "i1" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 142
+Error (10149): Verilog HDL Declaration error at ext_top.sv(146): identifier "i1" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 146
+Error (10149): Verilog HDL Declaration error at ext_top.sv(151): identifier "i1" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 151
+Error (10149): Verilog HDL Declaration error at ext_top.sv(160): identifier "i1" is already declared in the present scope File: /home/prithvi/Documents/Academics/Semester-II/CSE-6351/Custom_RISC_Implementation-/ext_top.sv Line: 160
 Info (12021): Found 0 design units, including 0 entities, in source file ext_top.sv
-Error: Quartus Prime Analysis & Synthesis was unsuccessful. 7 errors, 12 warnings
+Error: Quartus Prime Analysis & Synthesis was unsuccessful. 19 errors, 2 warnings
     Error: Peak virtual memory: 349 megabytes
-    Error: Processing ended: Wed Feb  8 18:43:36 2023
+    Error: Processing ended: Thu Feb  9 19:58:48 2023
     Error: Elapsed time: 00:00:06
     Error: Total CPU time (on all processors): 00:00:25
 

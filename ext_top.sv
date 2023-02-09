@@ -1,27 +1,30 @@
-module ext_top(
+module ext_top(ADC_CLK_10, pc_in, iw_in, rs1_data_in, rs2_data_in, KEY, alu_out);
 
     // System Clock
-    input ADC_CLK_10,
+    input ADC_CLK_10;
 
     // Following inputs are received from the Instruction Decode stage
-    input [31:0] pc_in,
-    input [31:0] iw_in,
-    input [31:0] rs1_data_in,
-    input [31:0] rs2_data_in,
-    input [1:0] KEY,
+    input reg [31:0] pc_in, iw_in, rs1_data_in, rs2_data_in;
+    input reg [1:0] KEY;
+    output reg [31:0] alu_out;
 
     // To Memory
-    output reg [31:0] alu_out);
+    wire [31:0] alu_temp, pc_temp;
 
     // Local clock
     wire clk = ADC_CLK_10;
 
-    assign reg func3 = {iw_in[14:12]};      // Extract func3 from Instruction Word
-    assign reg func7 = {iw_in[31:25]};      // Extract func7 from Instruction Word
-    assign reg shamt = {iw_in[24:20]};      // Extract shamt from Instruction Word
-    assign reg opcde = {iw_in[6:0]};        // Extract opcode from Instruction Word
-    assign reg rd    = {iw_in[11:7]};       // Extract rd from Instruction Word
-
+    assign func3 = {iw_in[14:12]};      // Extract func3 from Instruction Word
+    assign func7 = {iw_in[31:25]};      // Extract func7 from Instruction Word
+    assign shamt = {iw_in[24:20]};      // Extract shamt from Instruction Word
+    assign opcde = {iw_in[6:0]};        // Extract opcode from Instruction Word
+    assign rd    = {iw_in[11:7]};       // Extract rd from Instruction Word
+    wire [0:20] i5 = {iw_in[31:12]};    // This is the last time, I promise, I extract some information from the Instruction Word
+    wire [0:4]  i4 = {iw_in[11:08]};    // You guessed it, extract some more information from Instruction Word
+    wire [0:11] i3 = {iw_in[11:07]};    // Extract even more information from Instruction Word
+    wire [0:6]  i2 = {iw_in[31:25]};    // Extract some more encoding from Instruction Word
+    wire [0:11] i1 = {iw_in[31:20]};    // Extract immediate value from Instruction Word
+    reg [31:0]temp1, temp2, temp3;
 
     /*
         Opcode will determine the Operation encoding.
@@ -43,85 +46,250 @@ module ext_top(
         The operation itself can be determined by further scrutinising func3 and func7 values
         The following case blocks achieve this.
     */
-    always @ (func3, func7, opcde, posedge clk) begin                               // Determine the operation to be performed from the opcode, func3 and func7
+    always @ (func3, func7, shamt, opcde) begin                                      // Determine the operation to be performed from the opcode, func3 and func7
         case (opcde)
-            // R encoded instructions
-            2'b0110011: begin                                                       // R encoded operations
+        /************************************************ R encoded instructions ******************************************************************/
+            7'b0110011: begin                                                       // R encoded operations
                 case (func3)
-                    2'b000: begin                                                   // func3 = 000 supports two operations. Therefore compare func7 to determine operation
+                    3'b000: begin                                                   // func3 = 000 supports two operations. Therefore compare func7 to determine operation
                         case (func7)
-                            2'b0000000: alu_out = rs1_data_in + rs2_data_in;        // ADD operation
-                            2'b0100000: alu_out = rs1_data_in - rs2_data_in;        // SUB operation
-                            default:    alu_out = rs1_data_in;
+                            7'b0000000: alu_temp = rs1_data_in + rs2_data_in;       // ADD operation
+                            7'b0100000: alu_temp = rs1_data_in - rs2_data_in;       // SUB operation
+                            default:    alu_temp = rs1_data_in;                     // alu must always return something or a latch is assumed
                         endcase
                     end
 
-                    2'b001: alu_out = rs1_data_in << (rs2_data_in & 16'h1F);        // Left shift RS1 operand by 5 bits
+                    3'b001: alu_temp = rs1_data_in << (rs2_data_in & 16'h1F);       // Left shift RS1 operand by 5 bits
 
-                    2'b010: begin                                                   // Compare RS1 and RS2
+                    3'b010: begin                                                   // Compare RS1 and RS2
                         if (rs1_data_in < rs2_data_in)
-                            alu_out = 1;
+                            alu_temp = 1;
                         else
-                            alu_out = 0;
+                            alu_temp = 0;
                     end
 
-                    2'b011: begin                                                   // Compare RS1 and RS2(unsigned)
+                    3'b011: begin                                                   // Compare RS1 and RS2(unsigned)
                         if (rs1_data_in < rs2_data_in)
-                            alu_out = 1;                                            // Assign 1 if lesser else assign 0
+                            alu_temp = 1;                                           // Assign 1 if lesser else assign 0
                         else
-                            alu_out = 0;
+                            alu_temp = 0;
                     end
 
-                    2'b100: begin
-                        alu_out = rs1_data_in ^ rs2_data_in;                        // XOR operation
+                    3'b100: begin
+                        alu_temp = rs1_data_in ^ rs2_data_in;                       // XOR operation
                     end
 
-                    2'b101: begin
+                    3'b101: begin
                         case (func7)
-                            2'b0000000: alu_out = rs1_data_in >> rs2_data_in;       // SRL (Shift Right Logical) operation
-                            2'b0100000: alu_out = rs1_data_in >>> rs2_data_in;      // SRA (Shift Right Arithmatic) operation
+                            7'b0000000: alu_temp = rs1_data_in >> rs2_data_in;      // SRL (Shift Right Logical) operation
+                            7'b0100000: alu_temp = rs1_data_in >>> rs2_data_in;     // SRA (Shift Right Arithmatic) operation
+                            default: alu_temp = 32'b0;                              // alu must always return something or a latch is assumed
                         endcase
                     end
 
-                    2'b110: begin
-                        alu_out = rs1_data_in | rs2_data_in;                        // OR operation
+                    3'b110: begin
+                        alu_temp = rs1_data_in | rs2_data_in;                       // OR operation
                     end
 
-                    2'b111: begin
-                        alu_out = rs1_data_in & rs2_data_in;                        // AND operation
+                    3'b111: begin
+                        alu_temp = rs1_data_in & rs2_data_in;                       // AND operation
                     end
+
+                    default: alu_temp = 32'b0;                                      // alu must always return something or a latch is assumed
                 endcase
             end
 
-            // I encoded operations
-            2'b1100111: begin                                                       // JALR operation
-                alu_out = pc_in + 4;                                                // Increment PC (program counter) by 4
-                pc_in = {{20{i[11]}}, i};                                           // Update Program Counter
+            /************************************************ I encoded instructions ******************************************************************/
+            7'b1100111: begin                                                       // JALR operation
+                pc_temp = pc_in + 32'd4;                                            // Increment PC (program counter) by 4
+                alu_temp = {{20{i1[11]}}, i1};                                      // Update Program Counter
             end
 
-            2'b0000011: begin
+            7'b0000011: begin
                 case (func3)
-                    2'b000: alu_out =                                               // JB operation
-                    2'b001: alu_out = 
-                    2'b010: alu_out = 
-                    2'b100: alu_out = rs1_data_in + {{21{i}}, i};                   // LBU operation
-                    2'b101: alu_out = 
+                    3'b000: begin
+                        temp1 = rs1_data_in + {{20{i1[11]}}, i1};                   // Signex immediate value and add to rs1
+                        temp2 = temp1[8:0];                                         // Extract the LSB byte of the result
+                        alu_temp = {{24{temp2[7]}}, temp2};                         // LB operation
+                    end
+
+                    3'b001: begin
+                        temp1 = rs1_data_in + {{20{i1[11]}}, i1};                   // Signex immediate value and add to rs1
+                        temp2 = temp1[15:0];                                        // Extract the LSB half word of the result
+                        alu_temp = {{16{temp2[7]}}, temp2};                         // LH operation
+                    end
+
+                    3'b010: begin
+                        alu_temp = rs1_data_in + {{20{i1[11]}}, i1};                // Signex immediate value and add to rs1 LW operation
+                    end
+
+                    3'b100: begin
+                        temp1 = rs1_data_in + {{20{i1[11]}}, i1};                   // Signex immediate value and add to rs1
+                        alu_temp = temp1[23:0];                                     // Extract the LSB 24 bits of the result LBU operation
+                    end
+
+                    3'b101: begin
+                        temp1 = rs1_data_in + {{20{i1[11]}}, i1};                   // Signex immediate value and add to rs1
+                        alu_temp = temp1[16:0];                                     // Extract the LSB 16 bits of the result LHU operation
+                    end
+
+                    default: alu_temp = 32'b0;                                      // alu must always return something or a latch is assumed
                 endcase
             end
 
-            2'b0010011: begin
+            7'b0010011: begin
                 case (func3)
-                    2'b000: begin
-                        alu_out = rs1_data_in + {21{i}};                            // I encoded operation ADDI
+                    3'b000: begin
+                        alu_temp = rs1_data_in + {{20{i1[11]}}, i1};                // I encoded operation ADDI
                     end
 
-                    2'b010: begin
-                        if(rs1_data_in < {21{i}})
-                            alu_out = 1;                                            // I encoded operation ADDI
+                    3'b010: begin
+                        if(rs1_data_in < {{20{i1[11]}}, i1})
+                            alu_temp = 1;                                           // I encoded operation SLTI
                         else
-                            alu_out = 0;
+                            alu_temp = 0;
                     end
+
+                    3'b011: begin
+                        if(rs1_data_in < {{20{i1[11]}}, i1})
+                            alu_temp = 1;                                           // I encoded operation SLTIU | CHECKME
+                        else
+                            alu_temp = 0;
+                    end
+
+                    3'b100: begin
+                        alu_temp = rs1_data_in ^ {{20{i1[11]}}, i1};                // XORI operation
+                    end
+
+                    3'b110: begin
+                        alu_temp = rs1_data_in | {{20{i1[11]}}, i1};                // ORI operation
+                    end
+
+                    3'b111: begin
+                        alu_temp = rs1_data_in & {{20{i1[11]}}, i1};                // ANDI operation
+                    end
+
+                    3'b001: begin
+                        alu_temp = rs1_data_in << shamt;                            // SLLI operation
+                    end
+
+                    3'b101: begin
+                        case (i2)
+                            7'b0000000: begin
+                                alu_temp = rs1_data_in >> shamt;                    // SRLI operation
+                            end
+
+                            7'b0100000: begin
+                                alu_temp = rs1_data_in >>> shamt;                   // SRAI operation
+                            end
+
+                            default: alu_temp = 32'b0;                              // alu must always return something or a latch is assumed
+                        endcase
+                    end
+
+                    default: alu_temp = 32'b0;                                      // alu must always return something or a latch is assumed
+
                 endcase
+            end
+
+            /************************************************ S encoded instructions ******************************************************************/
+            7'b0100011: begin
+                case (func3)                                                        // SB operation - CHECKME
+                    3'b000: begin
+                       temp1 =  {i2, i3};
+                       temp2 = rs1_data_in + {{20{temp1[11]}}, temp1};
+                       alu_temp = rs2_data_in[7:0];
+                    end
+
+                    3'b001: begin                                                   // SH operation - CHECKME
+                        temp1 =  {i2, i3};
+                       temp2 = rs1_data_in + {{20{temp1[11]}}, temp1};
+                       alu_temp = rs2_data_in[16:0];
+                    end
+
+                    3'b010: begin                                                   // SW operation - CHECKME
+                        temp1 =  {i2, i3};
+                       temp2 = rs1_data_in + {{20{temp1[11]}}, temp1};
+                       alu_temp = rs2_data_in[31:0];
+                    end
+
+                    default: alu_temp = 32'b0;                                      // alu must always return something or a latch is assumed
+                endcase
+            end
+
+            /************************************************ B encoded instructions ******************************************************************/
+            7'b1100011: begin
+                case (func3)
+                    3'b000: begin                                                   // BEQ operation
+                        if (rs1_data_in == rs2_data_in) begin
+                            temp1 = {iw_in[7], i2, i4};
+                            temp2 = {{20{temp1[11]}}, temp1};
+                            alu_temp = pc_in + (2 * temp2);
+                        end else
+                            alu_temp = 32'b0;
+                    end
+
+                    3'b001: begin                                                   // BNE operation
+                        if (rs1_data_in != rs2_data_in) begin
+                            temp1 = {iw_in[7], i2, i4};
+                            temp2 = {{20{temp1[11]}}, temp1};
+                            alu_temp = pc_in + (2 * temp2);
+                        end else
+                            alu_temp = 32'b0;
+                    end
+
+                    3'b100: begin                                                   // BLT operation
+                        if (rs1_data_in < rs2_data_in) begin
+                            temp1 = {iw_in[7], i2, i4};
+                            temp2 = {{20{temp1[11]}}, temp1};
+                            alu_temp = pc_in + (2 * temp2);
+                        end else
+                            alu_temp = 32'b0;
+                    end
+
+                    3'b101: begin                                                   // BGE operation
+                        if (rs1_data_in >= rs2_data_in) begin
+                            temp1 = {iw_in[7], i2, i4};
+                            temp2 = {{20{temp1[11]}}, temp1};
+                            alu_temp = pc_in + (2 * temp2);
+                        end else
+                            alu_temp = 32'b0;
+                    end
+
+                    3'b110: begin                                                   // BLTU operation | CHECKME
+                        if (rs1_data_in < rs2_data_in) begin
+                            temp1 = {iw_in[7], i2, i4};
+                            temp2 = {{20{temp1[11]}}, temp1};
+                            alu_temp = pc_in + (2 * temp2);
+                        end else
+                            alu_temp = 32'b0;
+                    end
+
+                    3'b111: begin                                                   // BGEU operation | CHECKME
+                        if (rs1_data_in >= rs2_data_in) begin
+                            temp1 = {iw_in[7], i2, i4};
+                            temp2 = {{20{temp1[11]}}, temp1};
+                            alu_temp = pc_in + (2 * temp2);
+                        end else
+                            alu_temp = 32'b0;
+                    end
+
+                    default: alu_temp = 32'b0;                                      // alu must always return something or a latch is assumed
+                endcase
+            end
+
+            /************************************************ U encoded instructions ******************************************************************/
+            7'b0110111: begin
+                alu_temp = {i5, 12'b0};                                             // LUI operation
+            end
+
+            7'b0010111: begin
+                alu_temp = {i5, 12'b0} + pc_in;                                     // LUI operation
+            end
+
+            /************************************************ U encoded instructions ******************************************************************/
+            7'b1101111: begin
+                alu_temp = pc_in + 32'd4;
             end
         endcase
     end
