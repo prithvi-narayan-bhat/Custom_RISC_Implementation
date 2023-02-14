@@ -44,6 +44,13 @@
     |------------------------------------------------------------|
     | 27 | 11011 | 00000000000000000000 00000 1101111    | JALR  |
     |------------------------------------------------------------|
+    |------------------------------------------------------------|
+    |                       S Instructions                       |
+    |------------------------------------------------------------|
+    | 28 | 11100 | 0000000 00000 00000 000 00000 0100011 |  SB   |
+    | 29 | 11101 | 0000000 00000 00000 001 00000 0100011 |  SH   |
+    | 30 | 11110 | 0000000 00000 00000 010 00000 0100011 |  SW   |
+    |------------------------------------------------------------|
 
 */
 module ext_top(
@@ -89,6 +96,10 @@ module ext_top(
 
             5'b11011: iw_out = 32'b00000000000000000000000001101111;    // JALR => 00000005
 
+            5'b11100: iw_out = 32'b00000000000000000000000000100011;    // SB   => 00000005
+            5'b11101: iw_out = 32'b00000000000000000001000000100011;    // SH   => 00000005
+            5'b11110: iw_out = 32'b00000000000000000010000000100011;    // SW   => 00000005
+
             default:  iw_out = 32'b0;
         endcase
     end
@@ -130,9 +141,11 @@ module top_gun(
     always @ (func3, func7, shamt, opcde, reset) begin                              // Determine the operation to be performed from the opcode, func3 and func7
         case (opcde)
         /************************************************ R encoded instructions ******************************************************************/
-            7'b0110011: begin                                                       // R encoded operations
+            7'b0110011:                                                             // R encoded operations
+            begin
                 case (func3)
-                    3'b000: begin                                                   // func3 = 000 supports two operations. Therefore compare func7 to determine operation
+                    3'b000:                                                         // func3 = 000 supports two operations. Therefore compare func7 to determine operation
+                    begin
                         case (func7)
                             7'b0000000: alu_temp = rs1_data_in + rs2_data_in;       // ADD operation
                             7'b0100000: alu_temp = rs1_data_in - rs2_data_in;       // SUB operation
@@ -142,14 +155,16 @@ module top_gun(
 
                     3'b001: alu_temp = rs1_data_in << (rs2_data_in & 16'h1F);       // SLL operation
 
-                    3'b010: begin                                                   // SLT operation
-                        if (rs1_data_in < rs2_data_in)
+                    3'b010:                                                         // SLT operation
+                    begin
+                        if (signed'(rs1_data_in) < signed'(rs2_data_in))
                             alu_temp = 32'd1;
                         else
                             alu_temp = 32'd0;
                     end
 
-                    3'b011: begin                                                   // SLTU operation
+                    3'b011:                                                         // SLTU operation
+                    begin
                         if (rs1_data_in < rs2_data_in)
                             alu_temp = 32'd1;                                       // Assign 1 if lesser else assign 0
                         else
@@ -158,7 +173,8 @@ module top_gun(
 
                     3'b100: alu_temp = rs1_data_in ^ rs2_data_in;                   // XOR operation
 
-                    3'b101: begin
+                    3'b101:
+                    begin
                         case (func7)
                             7'b0000000: alu_temp = rs1_data_in >> rs2_data_in;      // SRL (Shift Right Logical) operation
                             7'b0100000: alu_temp = rs1_data_in >>> rs2_data_in;     // SRA (Shift Right Arithmatic) operation
@@ -168,9 +184,7 @@ module top_gun(
 
                     3'b110: alu_temp = rs1_data_in | rs2_data_in;                   // OR operation
 
-                    3'b111: begin
-                        alu_temp = rs1_data_in & rs2_data_in;                       // AND operation
-                    end
+                    3'b111: alu_temp = rs1_data_in & rs2_data_in;                   // AND operation
 
                     default: alu_temp = 32'b0;                                      // alu must always return something or a latch is assumed
                 endcase
@@ -179,7 +193,8 @@ module top_gun(
             /************************************************ I encoded instructions ******************************************************************/
             7'b1100111: alu_temp = pc_in + 32'd4;                                   // JALR operation
 
-            7'b0000011: begin
+            7'b0000011:
+            begin
                 case (func3)
                     3'b000: alu_temp = rs1_data_in + {{20{i1[11]}}, i1};            // LB operation
 
@@ -195,20 +210,23 @@ module top_gun(
                 endcase
             end
 
-            7'b0010011: begin
+            7'b0010011:
+            begin
                 case (func3)
                     3'b000: alu_temp = rs1_data_in + {{20{i1[11]}}, i1};            // I encoded operation ADDI
 
-                    3'b010: begin
-                        if(rs1_data_in < {{20{i1[11]}}, i1})
+                    3'b010:
+                    begin
+                        if(signed'(rs1_data_in) < signed'({{20{i1[11]}}, i1}))
                             alu_temp = 1;                                           // I encoded operation SLTI
                         else
                             alu_temp = 0;
                     end
 
-                    3'b011: begin
+                    3'b011:
+                    begin
                         if(rs1_data_in < {{20{i1[11]}}, i1})
-                            alu_temp = 1;                                           // I encoded operation SLTIU | CHECKME
+                            alu_temp = 1;                                           // I encoded operation SLTIU
                         else
                             alu_temp = 0;
                     end
@@ -221,7 +239,8 @@ module top_gun(
 
                     3'b001: alu_temp = rs1_data_in << shamt;                        // SLLI operation
 
-                    3'b101: begin
+                    3'b101:
+                    begin
                         case (i2)
                             7'b0000000: alu_temp = rs1_data_in >> shamt;            // SRLI operation
 
@@ -237,23 +256,27 @@ module top_gun(
             end
 
             /************************************************ S encoded instructions ******************************************************************/
-            7'b0100011: begin
-                case (func3)                                                        // SB operation - CHECKME
-                    3'b000: begin
-                       temp1 =  {i2, i3};
-                       alu_temp = rs1_data_in + {{20{temp1[11]}}, temp1};
+            7'b0100011:
+            begin
+                case (func3)                                                        // SB operation
+                    3'b000:
+                    begin
+                        temp1 =  {i2, i3};
+                        alu_temp = rs1_data_in + {{20{temp1[11]}}, temp1};
                     end
 
-                    3'b001: begin                                                   // SH operation - CHECKME
+                    3'b001:                                                         // SH operation
+                    begin
                         temp1 =  {i2, i3};
-                       temp2 = rs1_data_in + {{20{temp1[11]}}, temp1};
-                       alu_temp = rs2_data_in[16:0];
+                        temp2 = rs1_data_in + {{20{temp1[11]}}, temp1};
+                        alu_temp = rs2_data_in[16:0];
                     end
 
-                    3'b010: begin                                                   // SW operation - CHECKME
+                    3'b010:                                                         // SW operation
+                    begin
                         temp1 =  {i2, i3};
-                       temp2 = rs1_data_in + {{20{temp1[11]}}, temp1};
-                       alu_temp = rs2_data_in[31:0];
+                        temp2 = rs1_data_in + {{20{temp1[11]}}, temp1};
+                        alu_temp = rs2_data_in[31:0];
                     end
 
                     default: alu_temp = 32'b0;                                      // alu must always return something or a latch is assumed
@@ -261,10 +284,61 @@ module top_gun(
             end
 
             /************************************************ B encoded instructions ******************************************************************/
-            7'b1100011: begin
+            7'b1100011:
+            begin
                 case (func3)
-                    3'b000: begin                                                   // BEQ operation
-                        if (rs1_data_in == rs2_data_in) begin
+                    3'b000:                                                         // BEQ operation
+                    begin
+                        if (rs1_data_in == rs2_data_in)
+                        begin
+                            temp1 = {iw_in[7], i2, i4};
+                            temp2 = {{20{temp1[11]}}, temp1};
+                            alu_temp = pc_in + (2 * temp2);
+                        end
+                        else
+                            alu_temp = 32'b0;
+                    end
+
+                    3'b001:                                                         // BNE operation
+                    begin
+                        if (rs1_data_in != rs2_data_in)
+                        begin
+                            temp1 = {iw_in[7], i2, i4};
+                            temp2 = {{20{temp1[11]}}, temp1};
+                            alu_temp = pc_in + (2 * temp2);
+                        end
+                        else
+                            alu_temp = 32'b0;
+                    end
+
+                    3'b100:                                                         // BLT operation
+                    begin
+                        if (signed'(rs1_data_in) < signed'(rs2_data_in))
+                        begin
+                            temp1 = {iw_in[7], i2, i4};
+                            temp2 = {{20{temp1[11]}}, temp1};
+                            alu_temp = pc_in + (2 * temp2);
+                        end
+                        else
+                            alu_temp = 32'b0;
+                    end
+
+                    3'b101:                                                         // BGE operation
+                    begin
+                        if (rs1_data_in >= rs2_data_in)
+                        begin
+                            temp1 = {iw_in[7], i2, i4};
+                            temp2 = {{20{temp1[11]}}, temp1};
+                            alu_temp = pc_in + (2 * temp2);
+                        end
+                        else
+                            alu_temp = 32'b0;
+                    end
+
+                    3'b110:                                                         // BLTU operation
+                    begin
+                        if (rs1_data_in < rs2_data_in)
+                        begin
                             temp1 = {iw_in[7], i2, i4};
                             temp2 = {{20{temp1[11]}}, temp1};
                             alu_temp = pc_in + (2 * temp2);
@@ -272,48 +346,15 @@ module top_gun(
                             alu_temp = 32'b0;
                     end
 
-                    3'b001: begin                                                   // BNE operation
-                        if (rs1_data_in != rs2_data_in) begin
+                    3'b111:                                                         // BGEU operation
+                    begin
+                        if (rs1_data_in >= rs2_data_in)
+                        begin
                             temp1 = {iw_in[7], i2, i4};
                             temp2 = {{20{temp1[11]}}, temp1};
                             alu_temp = pc_in + (2 * temp2);
-                        end else
-                            alu_temp = 32'b0;
-                    end
-
-                    3'b100: begin                                                   // BLT operation
-                        if (rs1_data_in < rs2_data_in) begin
-                            temp1 = {iw_in[7], i2, i4};
-                            temp2 = {{20{temp1[11]}}, temp1};
-                            alu_temp = pc_in + (2 * temp2);
-                        end else
-                            alu_temp = 32'b0;
-                    end
-
-                    3'b101: begin                                                   // BGE operation
-                        if (rs1_data_in >= rs2_data_in) begin
-                            temp1 = {iw_in[7], i2, i4};
-                            temp2 = {{20{temp1[11]}}, temp1};
-                            alu_temp = pc_in + (2 * temp2);
-                        end else
-                            alu_temp = 32'b0;
-                    end
-
-                    3'b110: begin                                                   // BLTU operation | CHECKME
-                        if (rs1_data_in < rs2_data_in) begin
-                            temp1 = {iw_in[7], i2, i4};
-                            temp2 = {{20{temp1[11]}}, temp1};
-                            alu_temp = pc_in + (2 * temp2);
-                        end else
-                            alu_temp = 32'b0;
-                    end
-
-                    3'b111: begin                                                   // BGEU operation | CHECKME
-                        if (rs1_data_in >= rs2_data_in) begin
-                            temp1 = {iw_in[7], i2, i4};
-                            temp2 = {{20{temp1[11]}}, temp1};
-                            alu_temp = pc_in + (2 * temp2);
-                        end else
+                        end
+                        else
                             alu_temp = 32'b0;
                     end
 
