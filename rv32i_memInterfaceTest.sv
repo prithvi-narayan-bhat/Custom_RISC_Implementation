@@ -14,9 +14,7 @@ module rv32i_memInterfaceTest(
 
     always_ff @ (posedge KEY[1])                // Trigger on posedge of Key press
     begin
-        if (counter > 9)     counter = -1;      // Reset counter
-
-        counter++;                              // Increment counter value
+        if (counter++ >= 5)     counter = -1;      // Reset counter
 
         case (counter)
             32'd0:
@@ -51,7 +49,7 @@ module rv32i_memInterfaceTest(
                 d_we        = 1'b1;             // Write enabled
                 sign        = 1'b0;             // Unsigned data
                 width       = 2'b10;            // Size: Word
-                alu_out     = 32'h56;           // Address
+                alu_out     = 32'h60;           // Address
                 rs2_data    = 32'h12345678;     // Test data
             end
 

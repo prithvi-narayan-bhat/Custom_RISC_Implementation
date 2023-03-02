@@ -1,0 +1,24 @@
+module rv32i_ifTop(
+        input clk,               // System Clock and Snchronous Reset
+        input [1:0] KEY,
+        input [31:0] memIfData,         // From MemInterface
+        output reg [31:2] memIfAddr,    // To MemInterface
+        output reg [31:0] iw_out,       // To ID
+        output reg [31:0] pc_out        // To ID
+    );
+
+    reg [31:0] pc = 0;
+
+    always_ff @ (posedge KEY[1])
+    begin
+        iw_out <= memIfData;        // Instruction Word (memIfData) is registered in the memory module, so it directly drives iw_out
+        memIfAddr <= pc;            // PC drives memIfAddr directly
+    end
+
+    // set program counter
+    always_ff @ (posedge KEY[1])
+    begin
+        if (KEY[0]) pc_out <= 32'd0;
+        else        pc_out <= pc + 32'd4;
+    end
+endmodule]
