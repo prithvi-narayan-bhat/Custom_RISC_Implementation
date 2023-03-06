@@ -20,7 +20,7 @@ module cri(
     wire [1:0] width, w_be;
     wire sign, w_enable;
     wire [1:0] bank;     // Extract last two bits of alu_out
-    int inst_counter = -1;
+    int counter = -1;
     int data_counter = 511;
 
     /*
@@ -41,7 +41,7 @@ module cri(
                     2'b01:  writeBankEnable = 4'b0010;     // 8-bit write, enable second bank
                     2'b10:  writeBankEnable = 4'b0100;     // 8-bit write, enable third bank
                     2'b11:  writeBankEnable = 4'b1000;     // 8-bit write, enable fourth bank
-                    default: writeBankEnable = 4'b0000;    // Enable no banks
+                    // default: writeBankEnable = 4'b0000;    // Enable no banks
                 endcase
             end
 
@@ -51,21 +51,13 @@ module cri(
                     2'b00:  writeBankEnable = 4'b0011;     // 16-bit write, enable first bank
                     2'b01:  writeBankEnable = 4'b0110;     // 16-bit write, enable second bank
                     2'b10:  writeBankEnable = 4'b1100;     // 16-bit write, enable third bank
-                    default: writeBankEnable = 4'b0000;    // Enable no banks
+                    // default: writeBankEnable = 4'b0000;    // Enable no banks
                 endcase
             end
 
-            2'b10:  writeBankEnable = 4'b1111;     // 32-bit write, enable first bank
-            // begin
-            //     case (bank)
-            //         2'b00:  writeBankEnable = 4'b1111;     // 16-bit write, enable first bank
-            //         2'b01:  writeBankEnable = 4'b1110;     // 16-bit write, enable second bank
-            //         2'b10:  writeBankEnable = 4'b1100;     // 16-bit write, enable third bank
-            //         default: writeBankEnable = 4'b1000;    // Enable no banks
-            //     endcase
-            // end
+            2'b10:  writeBankEnable = 4'b1111;             // 32-bit write, enable first bank
 
-            default:        writeBankEnable = 4'b1111;     // 32-bit write, enable fourth bank
+            // default:        writeBankEnable = 4'b1111;     // 32-bit write, enable fourth bank
         endcase
 
         return writeBankEnable;                            // Return the byte enable signals
@@ -106,147 +98,134 @@ module cri(
             2'b01:      temp = d_rdata >> 08;
             2'b10:      temp = d_rdata >> 16;
             2'b11:      temp = d_rdata >> 24;
-            default:    temp = d_rdata;
+            // default:    temp = d_rdata;
         endcase
 
-        case (w)
-            2'b00:      shifted_d_rdata = {{24{temp[07]}}, temp[07:00]};
-            2'b01:      shifted_d_rdata = {{16{temp[15]}}, temp[15:0]};
-            2'b10:      shifted_d_rdata = {{08{temp[24]}}, temp[24:0]};
-            default:    shifted_d_rdata = temp;
-        endcase
+        if (sign)
+        begin
+            case (w)
+                2'b00:      shifted_d_rdata = {{24{temp[07]}}, temp[07:00]};
+                2'b01:      shifted_d_rdata = {{16{temp[15]}}, temp[15:0]};
+                default:    shifted_d_rdata = temp;
+            endcase
+        end
+
+        else                                    // Pad zeros (0) in case the sign flag is unset
+        begin
+            case (w)                            // Width determines the number of bits to pad
+                2'b00:      shifted_d_rdata = {24'b0, temp[07:00]};
+                2'b01:      shifted_d_rdata = {16'b0, temp[15:00]};
+                default:    shifted_d_rdata = temp;
+            endcase
+        end
 
         return shifted_d_rdata;
     endfunction
 
     always_ff @ (posedge KEY[1])                // Trigger on posedge of Key press
     begin
-        if (inst_counter > 6)     inst_counter = -1;       // Reset counter at 5
+        if (counter > 9)     counter = -1;      // Reset counter
 
-        inst_counter++;                         // Increment counter value
+        counter++;                              // Increment counter value
 
-        case (inst_counter)
+        case (counter)
             32'd0:
             begin
-                d_we        = 1'b1;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 1'b0;             // Size: Word
-                alu_out     = 32'h50;           // Word Data (depends on width)
+                d_we        = 1'b1;             // Write enabled
+                sign        = 1'b0;             // Unsigned data
+                width       = 2'b0;             // Size: Byte
+                alu_out     = 32'h00;           // Address
                 rs2_data    = 32'h80;           // Test data
+                // w_be = 1 | d_wdata = 80h | d_rdata = 80h | func_return = 80h
 
             end
 
             32'd1:
             begin
-                d_we        = 1'b0;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd1;             // Size: Half Word
-                alu_out     = 32'h50;           // Word Data (depends on width)
+                d_we        = 1'b0;             // Write disabled
+                sign        = 1'b0;             // Unsigned data
+                width       = 2'b0;             // Size: Byte
+                alu_out     = 32'h00;           // Address
                 rs2_data    = 32'h100;          // Test data
             end
 
             32'd2:
             begin
-                d_we        = 1'b1;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd0;             // Size: Byte
-                alu_out     = 32'h51;           // Word Data (depends on width)
-                rs2_data    = 32'h1191;         // Test data
+                d_we        = 1'b1;             // Write enabled
+                sign        = 1'b0;             // Unsigned data
+                width       = 2'b0;             // Size: Byte
+                alu_out     = 32'h3;           // Address
+                rs2_data    = 32'd80;           // Test data
+                // w_be = 1 | d_wdata = 80h | d_rdata = 80h | func_return = 80h
+
             end
 
             32'd3:
             begin
-                d_we        = 1'b1;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd1;             // Size: Half Word
-                alu_out     = 32'h51;           // Word Data (depends on width)
-                rs2_data    = 32'h200;          // Test data
+                d_we        = 1'b0;             // Write disabled
+                sign        = 1'b0;             // Unsigned data
+                width       = 2'b0;             // Size: Byte
+                alu_out     = 32'h3;           // Address
+                rs2_data    = 32'h80;          // Test data
             end
 
             32'd4:
             begin
-                d_we        = 1'b1;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd2;             // Size: Word
-                alu_out     = 32'hC;           // Word Data (depends on width)
-                rs2_data    = 32'h12345678;     // Test data
+                d_we        = 1'b1;             // Write enabled
+                sign        = 1'b0;             // Unsigned data
+                width       = 2'b0;             // Size: Byte
+                alu_out     = 32'b10;           // Address
+                rs2_data    = 32'h1191;         // Test data
             end
 
             32'd5:
             begin
-                d_we        = 1'b0;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd2;             // Size: Word
-                alu_out     = 32'h52;           // Word Data (depends on width)
-                rs2_data    = 32'h300;          // Test data
+                d_we        = 1'b0;             // Write disabled
+                sign        = 1'b0;             // Unsigned data
+                width       = 2'b01;             // Size: Half Word
+                alu_out     = 32'b10;           // Address
+                rs2_data    = 32'h200;          // Test data
             end
 
             32'd6:
             begin
-                d_we        = 1'b0;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd2;             // Size: Word
-                alu_out     = 32'h52;           // Word Data (depends on width)
-                rs2_data    = 32'h300;          // Test data
+                d_we        = 1'b1;             // Write enabled
+                sign        = 1'b0;             // Unsigned data
+                width       = 2'b10;             // Size: Word
+                alu_out     = 32'h0;            // Address
+                rs2_data    = 32'h12345678;     // Test data
             end
 
             32'd7:
             begin
-                d_we        = 1'b0;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd2;             // Size: Word
-                alu_out     = 32'h52;           // Word Data (depends on width)
+                d_we        = 1'b0;             // Write disabled
+                sign        = 1'b0;             // Unsigned data
+                width       = 2'b10;             // Size: Word
+                alu_out     = 32'h0;            // Address
                 rs2_data    = 32'h300;          // Test data
             end
 
             32'd8:
             begin
-                d_we        = 1'b0;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd2;             // Size: Word
-                alu_out     = 32'h52;           // Word Data (depends on width)
-                rs2_data    = 32'h300;          // Test data
+                d_we        = 1'b1;             // Write enabled
+                sign        = 1'b1;             // Unsigned data
+                width       = 2'b10;             // Size: Half Word
+                alu_out     = 32'h0;           // Address
+                rs2_data    = 32'hFFFB;               // Test data
             end
 
             32'd9:
             begin
-                d_we        = 1'b0;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd2;             // Size: Word
-                alu_out     = 32'h52;           // Word Data (depends on width)
-                rs2_data    = 32'h300;          // Test data
-            end
-
-            32'd10:
-            begin
-                d_we        = 1'b0;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd2;             // Size: Word
-                alu_out     = 32'h52;           // Word Data (depends on width)
-                rs2_data    = 32'h300;          // Test data
-            end
-
-            32'd11:
-            begin
-                d_we        = 1'b0;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd2;             // Size: Word
-                alu_out     = 32'h52;           // Word Data (depends on width)
-                rs2_data    = 32'h300;          // Test data
-            end
-
-            32'd12:
-            begin
-                d_we        = 1'b0;             // Write enabled (1 bit)
-                sign        = 1'b0;             // Signed data
-                width       = 2'd2;             // Size: Word
-                alu_out     = 32'h52;           // Word Data (depends on width)
-                rs2_data    = 32'h300;          // Test data
+                d_we        = 1'b0;             // Write disabled
+                sign        = 1'b1;             // Signed data
+                width       = 2'b01;             // Size: Half Word
+                alu_out     = 32'h0;           // Address
+                rs2_data    = 32'h400;          // Test data
             end
         endcase
     end
 
-    assign w_be = writeBankEnable(alu_out, width);
+    // assign w_be = writeBankEnable(alu_out[1:0], width);
 
     // To test dual port RAM module
     rv32i_syncDualPortRam ramTest(
@@ -254,8 +233,8 @@ module cri(
         .i_addr(alu_out),
         .d_addr(alu_out),
         .d_we(d_we),
-        .d_be(w_be),
-        .d_wdata(shifted_rs2_data(rs2_data, alu_out)),
+        .d_be(writeBankEnable(alu_out[1:0], width)),
+        .d_wdata(shifted_rs2_data(rs2_data, alu_out[1:0])),
         .d_rdata(d_rdata)
     );
 
