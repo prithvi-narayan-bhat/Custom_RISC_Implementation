@@ -1,98 +1,116 @@
 /*
     Top code to test all other modules
-
-module cri(
-        input ADC_CLK_10,
-        input [1:0] KEY,
-        input [9:0] SW
-    );
-
-    // rv32i_memTest memTest (.clk(ADC_CLK_10), .KEY(KEY), .SW(SW));         // To test memory module
-    // rv32i_exTest exTest (.clk(ADC_CLK_10), .KEY(KEY), .SW(SW));           // To test ALU module
-    rv32i_memInterfaceTest memInterfaceTest (.clk(ADC_CLK_10), .KEY(KEY));  // To test memory interface module
-
-endmodule
 */
-
 module cri(
         input ADC_CLK_10,
-        input [1:0] KEY,
-        output [31:0] func_return
+        input [1:0] KEY
     );
 
-    `include "rv32i_memInterface.sv"            // Include files
+    reg reset, pre_reset;
+    wire wb_en_stage1, wb_en_stage2, wb_en_stage3;
+    wire [04:00] rs1_reg, rs2_reg, rsd_reg;
+    wire [31:02] memIfAddr;
+    wire [31:00] rs1_data, rs2_data, alu_out, i_rdata, d_rdata, wb_data;
+    wire [31:00] iw_stage1, pc_stage1,  iw_stage2, pc_stage2,  iw_stage3, pc_stage3,  iw_stage4, pc_stage4;
 
-    wire [31:0] rs2_data, d_rdata, alu_out;     // 32 bit values
-    wire [1:0] width, bank;                     // 02 bit values
-    wire sign, w_enable, d_we;                  // 01 bit values
+    // Include files
+    `include "rv32i_memInterface.sv"    // Files to format data for Dual Port RAM module
 
-    int counter = -1;
-
-    always_ff @ (posedge KEY[1])                // Trigger on posedge of Key press
+    // handle input metastability safely
+    always_ff @ (posedge(ADC_CLK_10))
     begin
-        if (counter++ >= 5)     counter = -1;      // Reset counter
-
-        // counter++;                              // Increment counter value
-
-        case (counter)
-            32'd0:
-            begin
-                d_we        = 1'b1;             // Write enabled
-                sign        = 1'b0;             // Unsigned data
-                width       = 2'b0;             // Size: Byte
-                alu_out     = 32'h50;           // Address
-                rs2_data    = 32'h80;           // Test data
-            end
-
-            32'd1:
-            begin
-                d_we        = 1'b1;             // Write enabled
-                sign        = 1'b0;             // Unsigned data
-                width       = 2'b0;             // Size: Byte
-                alu_out     = 32'h53;           // Address
-                rs2_data    = 32'h50;           // Test data
-            end
-
-            32'd2:
-            begin
-                d_we        = 1'b1;             // Write enabled
-                sign        = 1'b0;             // Unsigned data
-                width       = 2'b0;             // Size: Byte
-                alu_out     = 32'b10;           // Address
-                rs2_data    = 32'h1191;         // Test data
-            end
-
-            32'd3:
-            begin
-                d_we        = 1'b1;             // Write enabled
-                sign        = 1'b0;             // Unsigned data
-                width       = 2'b10;            // Size: Word
-                alu_out     = 32'h60;           // Address
-                rs2_data    = 32'h12345678;     // Test data
-            end
-
-            32'd4:
-            begin
-                d_we        = 1'b1;             // Write enabled
-                sign        = 1'b1;             // Unsigned data
-                width       = 2'b01;            // Size: Half Word
-                alu_out     = 32'h60;           // Address
-                rs2_data    = 32'hFFFB;         // Test data
-            end
-
-        endcase
+        pre_reset <= !KEY[0];
+        reset <= pre_reset;
     end
 
-    // To test dual port RAM module
-    rv32i_syncDualPortRam ramTest(
-        .clk(ADC_CLK_10),
-        .i_addr(alu_out[31:2]),
-        .d_addr(alu_out[31:2]),
-        .d_we(d_we),
-        .d_be(writeBankEnable(alu_out[1:0], width)),
-        .d_wdata(shifted_rs2_data(rs2_data, alu_out[1:0])),
-        .d_rdata(d_rdata)
+    rv32i_syncDualPortRam ramTest(      // Instantiate Dual Port RAM module
+        .clk(ADC_CLK_10),               // Clock
+        .i_addr(memIfAddr),             // Instruction Address                      | From ifTop module
+        .d_addr(alu_out[31:2]),         // Data Address                             | From exTop module
+        .i_rdata(i_rdata)               // Read Instruction Word                    | To ifTop module
     );
 
-    assign func_return = shifted_d_rdata(d_rdata, alu_out, width, sign);
+    rv32i_reg regFsInstance (           // Instantiate Register File System
+        .clk(ADC_CLK_10),               // Clock
+        .reset(reset),                  // Reset
+        .wb_enable(wb_en_out),          // Write Enable/Disable                     | From idTop module
+        .rs1_reg(rs1_reg),              // Register to read                         | From idTop module
+        .rs2_reg(rs2_reg),              // Register to read                         | From idTop module
+        .wb_reg(rsd_reg),               // Register to write into                   | From idTop module
+        .wb_data(wb_data),              // Data to write to register                | From exTop module
+        .rs1_data(rs1_data),            // Read data                                | To idTop module
+        .rs2_data(rs2_data)             // Read data                                | To idTop module
+    );
+
+
+    rv32i_ifTop ifTopInstance(          // Instantiate the Instruction Fetch stage
+        .clk(ADC_CLK_10),               // Clock
+        .reset(reset),                  // Reset
+        .memIfData(i_rdata),            // Data                                     | From SyncDualPortRam module
+        .memIfAddr(memIfAddr),          // Return value                             | To SyncDualPortRam module
+        .iw_out(iw_stage1),             // Instruction Word                         | To idTop module
+        .pc_out(pc_stage1)              // Program Counter as calculated here       | To idTop module
+    );
+
+    rv32i_idTop idTopInstance(          // Instantiate the Instruction Decode stage
+        .clk(ADC_CLK_10),               // Clock
+        .reset(reset),                  // Reset
+        .iw_in(iw_stage1),              // Instruction Word                         | From ifTop module
+        .pc_in(pc_stage1),              // Program Counter                          | From ifTop module
+        .rs1_data(rs1_data),            // Register data from Register Interface    | From regFs module
+        .rs2_data(rs2_data),            // Register data from Register Interface    | From regFs module
+        .rs1_reg(rs1_reg),              // Register to read from                    | To regFs module
+        .rs2_reg(rs2_reg),              // Register to read from                    | To regFs module
+        .wb_reg(rsd_reg),               // Register to write into                   | To regFs module
+        .wb_en_out(wb_en_stage1),       // Writeback enable/disable                 | To exTop module
+        .iw_out(iw_stage2),             // Instruction Word                         | To exTop module
+        .pc_out(pc_stage2)              // Program Counter                          | To exTop module
+    );
+
+    rv32i_exTop exTopInstance(          // Instantiate ALU system
+        .clk(ADC_CLK_10),               // Clock
+        .reset(reset),                  // Reset
+        .pc_in(pc_stage2),              // Current Program Counter                  | From idTop module
+        .iw_in(iw_stage2),              // Current Instruction Word                 | From idTop module
+        .wb_en_in(wb_en_stage1),        // Writeback enable/disable                 | From idTop module
+        .rs1_data_in(rs1_data),         // Data to manipulate                       | From regFs module
+        .rs2_data_in(rs2_data),         // Data to manipulate                       | From regFs module
+        .alu_out(alu_out),              // Result of operations                     | To memTop syncDualPortRam modules
+        .pc_out(pc_stage3),             // Updated Program Counter                  | To memTop module
+        .iw_out(iw_stage3),             // Updated Instruction Word                 | To memTop module
+        .wb_en_out(wb_en_stage2)        // Writeback enable/disable                 | To memTop module
+    );
+
+    rv32i_memTop memTopInstance(        // Instantiate Memory stage
+        .clk(ADC_CLK_10),               // Clock
+        .reset(reset),                  // Reset
+        .pc_in(pc_stage3),              // Current Program Counter                  | From exTop module
+        .iw_in(iw_stage3),              // Current Instruction Word                 | From exTop module
+        .alu_in(alu_out),               // Output from the ALU                      | From exTop module
+        .wb_en_in(wb_en_stage2),        // Writeback enable/disable                 | From memTop module
+        .pc_out(pc_stage4),             // Updated Program Counter                  | To wbTop module
+        .iw_out(iw_stage4),             // Updated Instruction Word                 | To wbTop module
+        .wb_en_out(wb_en_stage3)        // Writeback enable/disable                 | To wbTop module
+    );
+
+    rv32i_wbTop wbTopinstance(          // Instantiate WriteBack stage
+        .clk(ADC_CLK_10),               // Clock
+        .reset(reset),                  // Reset
+        .pc_in(pc_stage4),              // Current Program Counter                  | From memTop module
+        .iw_in(iw_stage4),              // Current Instruction Word                 | From memTop module
+        .wb_en_in(wb_en_stage3),        // Writeback enable/disable                 | From memTop module
+        .wb_reg_in(rsd_reg),            // Destination Register                     | From idTop module
+        .alu_in(alu_out),               // Calculated output                        | From exTop
+        .wb_data(wb_data),              // Writeback data                           | To regFsTop
+        .wb_reg_out(rsd_reg_out)        // Destination Register                     | To regFsTop module
+    );
+
+    rv32i_reg (                         // Instantiate Register File System with updated values
+        .clk(ADC_CLK_10),               // Clock
+        .reset(reset),                  // Reset
+        .wb_enable(wb_en_stage3),       // Write Enable/Disable                     | From idTop module
+        .wb_reg(rsd_reg_out),           // Register to write into                   | From idTop module
+        .wb_data(wb_data)               // Data to write to register                | From exTop module
+    );
+
 endmodule

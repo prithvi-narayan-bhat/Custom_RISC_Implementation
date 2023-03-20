@@ -7,12 +7,12 @@
     @param alu_out Output output of ALU arithmatic
 */
 module rv32i_exTop(
-        input clk, reset,                                       // System Clock
+        input clk, reset, wb_en_in,                             // System Clock
         input [31:0] pc_in, iw_in, rs1_data_in, rs2_data_in,    // Inputs are received from the Instruction Decode stage
-        output reg [31:0] alu_out                               // To Memory
+        output reg [31:0] alu_out, iw_out, pc_out, wb_en_out    // To Memory
     );
 
-    wire [31:0] alu_temp;                   // Internal storage
+    reg [31:0] alu_temp = 0;               // Internal storage
     wire [2:0] func3 = {iw_in[14:12]};      // Extract func3 from Instruction Word
     wire [6:0] func7 = {iw_in[31:25]};      // Extract func7 from Instruction Word
     wire [4:0] shamt = {iw_in[24:20]};      // Extract shamt from Instruction Word
@@ -202,12 +202,19 @@ module rv32i_exTop(
 
             /************************************************ J encoded instructions ******************************************************************/
             7'b1101111: alu_temp = pc_in + 32'd4;                                                       // JALR operation
+
+            default: alu_temp = 32'b0;                                                          // alu must always return something or a latch is assumed
         endcase
     end
 
 
     // Trigger condition for latching onto D flip-flop = reset button press
     always_ff @ (posedge(clk))
-    if (reset)  alu_out <= 32'b0;
-    else        alu_out <= alu_temp;
+    begin
+        if (reset)  alu_out <= 32'b0;
+        else        alu_out <= alu_temp;
+
+        iw_out <= iw_in;                    // Pass them on to the next module stage
+        pc_out <= pc_in;                    // Pass them on to the next module stage
+    end
 endmodule
