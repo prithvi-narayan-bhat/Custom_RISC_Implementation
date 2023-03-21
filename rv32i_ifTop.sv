@@ -16,11 +16,12 @@ module rv32i_ifTop(
         begin
             pc <= pc + 32'd4;       // Increment Program Counter
             memIfAddr <= pc[31:02]; // PC drives memIfAddr directly
+            pc_out = pc;
+
         end
 
     end
 
-    assign pc_out = pc;
     assign iw_out = memIfData;      // Instruction Word (memIfData) is registered in the memory module, so it directly drives iw_out
 
 endmodule

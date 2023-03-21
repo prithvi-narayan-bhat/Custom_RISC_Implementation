@@ -41,7 +41,7 @@ module rv32i_reg(
         begin
            for (int i = 1; i < 32; i++)
            begin
-                register[i] = 0;
+                register[i] = 32'd0;
            end
         end
 

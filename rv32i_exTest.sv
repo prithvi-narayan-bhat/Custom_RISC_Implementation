@@ -292,5 +292,5 @@ module rv32i_exTest(
         endcase
     end
 
-    rv32i_exTop test (.clk(ADC_CLK_10), .reset(0), .pc_in(pc_out), .iw_in(iw_out), .rs1_data_in(rs1_data_out), .rs2_data_in(rs2_data_out));      // Instantiate module
+   // rv32i_exTop test (.clk(ADC_CLK_10), .reset(0), .pc_in(pc_out), .iw_in(iw_out), .rs1_data_in(rs1_data_out), .rs2_data_in(rs2_data_out));      // Instantiate module
 endmodule
