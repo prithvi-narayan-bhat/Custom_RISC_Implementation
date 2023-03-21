@@ -8,8 +8,11 @@
 */
 module rv32i_exTop(
         input clk, reset, wb_en_in,                             // System Clock
+        input reg [4:0] wb_reg_in,
         input [31:0] pc_in, iw_in, rs1_data_in, rs2_data_in,    // Inputs are received from the Instruction Decode stage
-        output reg [31:0] alu_out, iw_out, pc_out, wb_en_out    // To Memory
+        output reg [31:0] alu_out, iw_out, pc_out, wb_en_out,   // To Memory
+        output reg [31:0] rs1_data_out, rs2_data_out,
+        output reg [4:0] wb_reg_out
     );
 
     reg [31:0] alu_temp = 0;               // Internal storage
@@ -216,5 +219,6 @@ module rv32i_exTop(
 
         iw_out <= iw_in;                    // Pass them on to the next module stage
         pc_out <= pc_in;                    // Pass them on to the next module stage
+        wb_reg_out <= wb_reg_in;
     end
 endmodule
