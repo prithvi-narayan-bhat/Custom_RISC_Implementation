@@ -1,0 +1,17 @@
+
+cri_asm:     file format elf32-littleriscv
+
+
+Disassembly of section .text:
+
+00010074 <_start>:
+   10074:	00c28293          	addi	t0,t0,12
+   10078:	00000013          	nop
+   1007c:	00000013          	nop
+   10080:	00000013          	nop
+   10084:	01230313          	addi	t1,t1,18
+   10088:	00000013          	nop
+   1008c:	00000013          	nop
+   10090:	00000013          	nop
+   10094:	005303b3          	add	t2,t1,t0
+   10098:	00100073          	ebreak
