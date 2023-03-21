@@ -11,7 +11,6 @@ module rv32i_exTop(
         input reg [4:0] wb_reg_in,
         input [31:0] pc_in, iw_in, rs1_data_in, rs2_data_in,    // Inputs are received from the Instruction Decode stage
         output reg [31:0] alu_out, iw_out, pc_out, wb_en_out,   // To Memory
-        output reg [31:0] rs1_data_out, rs2_data_out,
         output reg [4:0] wb_reg_out
     );
 
@@ -20,11 +19,12 @@ module rv32i_exTop(
     wire [6:0] func7 = {iw_in[31:25]};      // Extract func7 from Instruction Word
     wire [4:0] shamt = {iw_in[24:20]};      // Extract shamt from Instruction Word
     wire [6:0] opcde = {iw_in[6:0]};        // Extract opcode from Instruction Word
-    wire [4:0] rd    = {iw_in[11:7]};       // Extract rd from Instruction Word
+    // wire [4:0] rd    = {iw_in[11:7]};       // Extract rd from Instruction Word
     wire [6:0] i1    = {iw_in[31:25]};      // Extract encoding from Instruction Word
 
     // The operation can be determined by scrutinising opcode func3 and func7 bits. The following case blocks achieve this
-    always @ (func3, func7, shamt, opcde, reset) begin                              // Determine the operation to be performed from the opcode, func3 and func7
+    always @ (func3, func7, shamt, opcde, reset, iw_in, rs1_data_in, rs2_data_in, pc_in, i1)
+	 begin                              // Determine the operation to be performed from the opcode, func3 and func7
         case (opcde)
         /************************************************ R encoded instructions ******************************************************************/
             7'b0110011:                                                             // R encoded operations
@@ -220,5 +220,6 @@ module rv32i_exTop(
         iw_out <= iw_in;                    // Pass them on to the next module stage
         pc_out <= pc_in;                    // Pass them on to the next module stage
         wb_reg_out <= wb_reg_in;
+        wb_en_out <= wb_en_in;              // Pass them on to the next module stage
     end
 endmodule

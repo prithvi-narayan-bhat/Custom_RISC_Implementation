@@ -7,11 +7,8 @@ module rv32i_wbTop(
         output reg [4:0] wb_reg_out         // To Register Interface: Writeback Register
     );
 
-    always_ff @ (posedge clk)
-    begin
-        wb_data <= alu_in;
-        wb_en_out <= wb_en_in;
-        wb_reg_out <= wb_reg_in;
-    end
+        assign wb_data = alu_in;
+        assign wb_en_out = wb_en_in;
+        assign wb_reg_out = wb_reg_in;
 
 endmodule
