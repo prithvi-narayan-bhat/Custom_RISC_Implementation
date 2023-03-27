@@ -13,19 +13,29 @@ module rv32i_idTop
     assign rs2_reg = iw_in[24:20];            // Calculate rs2 from Instruction Word
     assign wb_reg = iw_in[11:07];             // Destination Register for Register Interface
 
+	 reg halt_ex;
+
     always_ff @ (posedge clk)
     begin
-        iw_out <= iw_in;                    // Pass them on to the next module stage
-        pc_out <= pc_in;                    // Pass them on to the next module stage
-        rs1_data_out <= rs1_data;           // Pass them on to the next module stage
-        rs2_data_out <= rs2_data;           // Pass them on to the next module stage
+
+        if (halt_ex == 1'b1)    iw_out <= 32'h13;   // Set as no-op
+        else                    iw_out <= iw_in;    // Pass them on to the next module stage
+
+        pc_out <= pc_in;                            // Pass them on to the next module stage
+        rs1_data_out <= rs1_data;                   // Pass them on to the next module stage
+        rs2_data_out <= rs2_data;                   // Pass them on to the next module stage
     end
 
     // Determine if writeback must be enabled depending on the opcode in the Instruction Word
-    always_ff @ (posedge clk)
+    always_ff @ (*)
     begin
         if (iw_in[06:00] == 7'b0100011) wb_en_out <= 0; // The only instruction that doesn't require writebacks
         else                            wb_en_out <= 1; // All others require writebacks
+
+        // EBreak
+        if (iw_in[06:00] == 7'b1110011) halt_ex = 1'b1;
+        if (reset == 1'b1)              halt_ex = 1'b0;
+
     end
 
 endmodule
