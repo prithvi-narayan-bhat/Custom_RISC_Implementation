@@ -76,3 +76,5 @@ incremental_db/
 *.cdb
 *.logdb
 *db
+*.bak
+*.qws

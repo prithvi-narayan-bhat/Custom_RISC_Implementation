@@ -11,7 +11,12 @@ module rv32i_exTop(
         input reg [4:0] wb_reg_in,
         input [31:0] pc_in, iw_in, rs1_data_in, rs2_data_in,    // Inputs are received from the Instruction Decode stage
         output reg [31:0] alu_out, iw_out, pc_out, wb_en_out,   // To Memory
-        output reg [4:0] wb_reg_out
+        output reg [4:0] wb_reg_out,
+
+        // Forwarded data from exTop stage
+        output df_ex_enable,                // Writeback enable signal at the exTop stage
+        output reg [4:0] df_ex_reg,         // Writeback register at the exTop stage
+        output reg [31:0] df_ex_data       // Writeback data at the exTop stage
     );
 
     reg [31:0] alu_temp = 0;               // Internal storage
@@ -222,4 +227,8 @@ module rv32i_exTop(
         wb_reg_out <= wb_reg_in;
         wb_en_out <= wb_en_in;              // Pass them on to the next module stage
     end
+
+    assign df_ex_enable = wb_en_in;
+    assign df_ex_reg    = wb_reg_in;
+    assign df_ex_data   = alu_out;
 endmodule

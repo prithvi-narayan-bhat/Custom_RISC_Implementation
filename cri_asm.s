@@ -4,19 +4,11 @@
 
 _start:
 
-    ADDI    t0, t0, 12
-
-    ADDI    zero,zero,0    # NOP
-    ADDI    zero,zero,0    # NOP
-    ADDI    zero,zero,0    # NOP
-
-    ADDI    t1, t1, 18
-
-    ADDI    zero,zero,0    # NOP
-    ADDI    zero,zero,0    # NOP
-    ADDI    zero,zero,0    # NOP
-
+    ADDI    t1, t1, 10
+    ADDI    t0, t0, 11
+    ADD     t0, t0, t1
     ADD     t2, t1, t0
+    ADD     t0, t1, t2
 
     EBREAK
 

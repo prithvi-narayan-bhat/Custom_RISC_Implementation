@@ -14,6 +14,10 @@ module cri(
     wire [31:00] iw_stage1, pc_stage1,  iw_stage2, pc_stage2,  iw_stage3, pc_stage3,  iw_stage4, pc_stage4;
     wire [31:00] rs1_data_out, rs2_data_out;
 
+    wire df_ex_enable, df_mem_enable, df_wb_enable;
+    wire [04:00] df_ex_reg, df_mem_reg, df_wb_reg;
+    wire [31:00] df_ex_data, df_mem_data, df_wb_data;
+
     // Include files
     `include "rv32i_memInterface.sv"    // Files to format data for Dual Port RAM module
 
@@ -65,7 +69,19 @@ module cri(
         .iw_out(iw_stage2),             // Instruction Word                         | To exTop module
         .pc_out(pc_stage2),             // Program Counter                          | To exTop module
         .rs1_data_out(rs1_data_out),    // Data                                     | To exTop module
-        .rs2_data_out(rs2_data_out)     // Data                                     | To exTop module
+        .rs2_data_out(rs2_data_out),    // Data                                     | To exTop module
+
+        .df_ex_enable(df_ex_enable),
+        .df_ex_reg(df_ex_reg),
+        .df_ex_data(df_ex_data),
+
+        .df_mem_enable(df_mem_enable),
+        .df_mem_reg(df_mem_reg),
+        .df_mem_data(df_mem_data),
+
+        .df_wb_enable(df_wb_enable),
+        .df_wb_reg(df_wb_reg),
+        .df_wb_data(df_wb_data)
     );
 
     rv32i_exTop exTopInstance(          // Instantiate ALU system
@@ -81,7 +97,11 @@ module cri(
         .iw_out(iw_stage3),             // Updated Instruction Word                 | To memTop module
         .wb_en_out(wb_en_stage2),       // Writeback enable/disable                 | To memTop module
         .wb_reg_in(wb_reg_stage1),
-        .wb_reg_out(wb_reg_stage2)
+        .wb_reg_out(wb_reg_stage2),
+
+        .df_ex_enable(df_ex_enable),
+        .df_ex_reg(df_ex_reg),
+        .df_ex_data(df_ex_data)
     );
 
     rv32i_memTop memTopInstance(        // Instantiate Memory stage
@@ -95,7 +115,11 @@ module cri(
         .iw_out(iw_stage4),             // Updated Instruction Word                 | To wbTop module
         .wb_en_out(wb_en_stage3),       // Writeback enable/disable                 | To wbTop module
         .wb_reg_in(wb_reg_stage2),
-        .wb_reg_out(wb_reg_stage3)
+        .wb_reg_out(wb_reg_stage3),
+
+        .df_mem_enable(df_mem_enable),
+        .df_mem_reg(df_mem_reg),
+        .df_mem_data(df_mem_data),
     );
 
     rv32i_wbTop wbTopinstance(          // Instantiate WriteBack stage
@@ -108,6 +132,10 @@ module cri(
         .alu_in(alu_out),               // Calculated output                        | From exTop module
         .wb_data(wb_data),              // Writeback data                           | To regFsTop module
         .wb_reg_out(wb_reg_stage4),     // Destination Register                     | To regFsTop module
-        .wb_en_out(wb_en_stage4)        // Writeback enable/disbale                 | To regFsTop module
+        .wb_en_out(wb_en_stage4),       // Writeback enable/disbale                 | To regFsTop module
+
+        .df_wb_enable(df_wb_enable),
+        .df_wb_reg(df_wb_reg),
+        .df_wb_data(df_wb_data)
     );
 endmodule
