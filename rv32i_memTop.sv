@@ -23,6 +23,6 @@ module rv32i_memTop(
 
     assign df_mem_enable = wb_en_in;
     assign df_mem_reg    = wb_reg_in;
-    assign df_mem_data   = alu_out;
+    assign df_mem_data   = alu_in;
 
 endmodule

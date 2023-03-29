@@ -2,7 +2,7 @@ module rv32i_idTop
     (
         input clk, reset,                           // System clock and synchronous reset
         input [31:0] iw_in, pc_in,                  // From ifTop
-        input [31:0] rs1_data, rs2_data,            // From Register interface
+        input [31:0] rs1_data_in, rs2_data_in,            // From Register interface
 
         // Forwarded data from exTop stage
         input df_ex_enable,                         // Writeback enable signal at the exTop stage
@@ -27,9 +27,9 @@ module rv32i_idTop
 
     assign rs1_reg = iw_in[19:15];            // Calculate rs1 from Instruction Word
     assign rs2_reg = iw_in[24:20];            // Calculate rs2 from Instruction Word
-    assign wb_reg = iw_in[11:07];             // Destination Register for Register Interface
 
-	 reg halt_ex;
+	reg halt_ex;
+    reg [31:00] rs1_int, rs2_int;
 
     always_ff @ (posedge clk)
     begin
@@ -37,6 +37,10 @@ module rv32i_idTop
         if (halt_ex == 1'b1)    iw_out <= 32'h13;   // Set as no-op
         else                    iw_out <= iw_in;    // Pass them on to the next module stage
         pc_out <= pc_in;                            // Pass them on to the next module stage
+        wb_reg <= iw_in[11:07];                     // Destination Register for Register Interface
+
+        rs1_data_out <= rs1_int;
+        rs2_data_out <= rs2_int;
     end
 
     // Determine if writeback must be enabled depending on the opcode in the Instruction Word
@@ -51,79 +55,18 @@ module rv32i_idTop
 
     end
 
-    // Hazard Detection
+    // Data Forwarding
     always_ff @ (*)
     begin
-        if (df_ex_enable == 1'b1)
-        begin
-            if (rs1_reg == df_ex_reg)
-            begin
-                rs1_data_out <= df_ex_data;
-                rs2_data_out <= rs2_data;
-            end
+        if      ((rs1_reg == df_ex_reg) && df_ex_enable && rs1_reg != 0)    rs1_int <= df_ex_data;
+        else if ((rs1_reg == df_mem_reg) && df_mem_enable && rs1_reg != 0)  rs1_int <= df_mem_data;
+        else if ((rs1_reg == df_wb_reg) && df_wb_enable && rs1_reg != 0)    rs1_int <= df_wb_data;
+        else    rs1_int <= rs1_data_in;
 
-            else if (rs2_reg == df_ex_reg)
-            begin
-                rs1_data_out <= rs1_data;
-                rs2_data_out <= df_ex_data;
-            end
-
-            else
-            begin
-                rs1_data_out <= rs1_data;                   // Pass them on to the next module stage
-                rs2_data_out <= rs2_data;                   // Pass them on to the next module stage
-            end
-        end
-
-        else if (df_mem_enable == 1'b1)
-        begin
-            if (rs1_reg == df_mem_reg)
-            begin
-                rs1_data_out <= df_mem_data;
-                rs2_data_out <= rs2_data;
-            end
-
-            else if (rs2_reg == df_mem_reg)
-            begin
-                rs1_data_out <= rs1_data;
-                rs2_data_out <= df_mem_data;
-            end
-
-            else
-            begin
-                rs1_data_out <= rs1_data;                   // Pass them on to the next module stage
-                rs2_data_out <= rs2_data;                   // Pass them on to the next module stage
-            end
-        end
-
-        else if (df_wb_enable == 1'b1)
-        begin
-            if (rs1_reg == df_wb_reg)
-            begin
-                rs1_data_out <= df_wb_data;
-                rs2_data_out <= rs2_data;
-            end
-
-            else if (rs2_reg == df_wb_reg)
-            begin
-                rs1_data_out <= rs1_data;
-                rs2_data_out <= df_wb_data;
-            end
-
-            else
-            begin
-                rs1_data_out <= rs1_data;                   // Pass them on to the next module stage
-                rs2_data_out <= rs2_data;                   // Pass them on to the next module stage
-            end
-        end
-
-        else
-        begin
-            rs1_data_out <= rs1_data;                   // Pass them on to the next module stage
-            rs2_data_out <= rs2_data;                   // Pass them on to the next module stage
-        end
-
-
+        if      ((rs2_reg == df_ex_reg) && df_ex_enable && rs2_reg != 0)    rs2_int <= df_ex_data;
+        else if ((rs2_reg == df_mem_reg) && df_mem_enable && rs2_reg != 0)  rs2_int <= df_mem_data;
+        else if ((rs2_reg == df_wb_reg) && df_wb_enable && rs2_reg != 0)    rs2_int <= df_wb_data;
+        else    rs2_int <= rs2_data_in;
     end
 
 endmodule

@@ -24,7 +24,6 @@ module rv32i_exTop(
     wire [6:0] func7 = {iw_in[31:25]};      // Extract func7 from Instruction Word
     wire [4:0] shamt = {iw_in[24:20]};      // Extract shamt from Instruction Word
     wire [6:0] opcde = {iw_in[6:0]};        // Extract opcode from Instruction Word
-    // wire [4:0] rd    = {iw_in[11:7]};       // Extract rd from Instruction Word
     wire [6:0] i1    = {iw_in[31:25]};      // Extract encoding from Instruction Word
 
     // The operation can be determined by scrutinising opcode func3 and func7 bits. The following case blocks achieve this
@@ -230,5 +229,5 @@ module rv32i_exTop(
 
     assign df_ex_enable = wb_en_in;
     assign df_ex_reg    = wb_reg_in;
-    assign df_ex_data   = alu_out;
+    assign df_ex_data   = alu_temp;
 endmodule
