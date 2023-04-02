@@ -1,6 +1,10 @@
 module rv32i_ifTop(
         input clk, reset,               // System Clock and Snchronous Reset
         input [31:0] memIfData,         // From MemInterface
+
+        input jump_enable,              // Enable jump          | From idTop module
+        input [31:0] jump_addr,         // Address to jump to   | From idTop module
+
         output reg [31:2] memIfAddr,    // To MemInterface
         output reg [31:0] iw_out,       // To ID
         output reg [31:0] pc_out        // To ID
@@ -15,7 +19,10 @@ module rv32i_ifTop(
         if (reset) pc = 32'd0;      // Reset Program Counter
         else
         begin
-            pc <= pc + 32'd4;       // Increment Program Counter
+
+            if (jump_enable == 1)    pc <= jump_addr;       // Set Jump destination
+            else                     pc <= pc + 32'd4;      // Increment Program Counter
+
             memIfAddr <= pc[31:02]; // PC drives memIfAddr directly
             pc_int = pc;
 
@@ -23,7 +30,7 @@ module rv32i_ifTop(
 
     end
 
-    always_ff @ (posedge(clk))
+    always_ff @ (posedge clk)
     begin
         pc_out <= pc_int;
     end
