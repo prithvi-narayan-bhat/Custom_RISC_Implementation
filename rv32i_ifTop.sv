@@ -11,30 +11,22 @@ module rv32i_ifTop(
     );
 
     reg [31:0] pc = 32'd0;
-    reg [31:00] pc_int;
 
     // set program counter
-    always_ff @ (posedge(clk))
-    begin
-        if (reset) pc = 32'd0;      // Reset Program Counter
-        else
-        begin
-
-            if (jump_enable == 1)    pc <= jump_addr;       // Set Jump destination
-            else                     pc <= pc + 32'd4;      // Increment Program Counter
-
-            memIfAddr <= pc[31:02]; // PC drives memIfAddr directly
-            pc_int = pc;
-
-        end
-
-    end
-
     always_ff @ (posedge clk)
     begin
-        pc_out <= pc_int;
+        if (reset) pc <= 32'd0;                     // Reset Program Counter
+        else
+        begin
+            if (jump_enable)    pc <= jump_addr;    // Set Jump destination
+            else                pc <= pc + 32'd4;   // Increment Program Counter
+        end
+
+        pc_out <= pc;                               // Latch signal to output with a delay
     end
 
-    assign iw_out = memIfData;      // Instruction Word (memIfData) is registered in the memory module, so it directly drives iw_out
+    assign iw_out = memIfData;                      // Instruction Word (memIfData) is registered in the memory module, so it directly drives iw_out
+    assign memIfAddr = pc[31:02];                   // PC drives memIfAddr directly
+
 
 endmodule

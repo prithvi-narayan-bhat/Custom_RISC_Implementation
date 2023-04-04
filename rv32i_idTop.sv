@@ -31,7 +31,7 @@ module rv32i_idTop
     assign rs1_reg = iw_in[19:15];                  // Calculate rs1 from Instruction Word
     assign rs2_reg = iw_in[24:20];                  // Calculate rs2 from Instruction Word
 
-	reg halt_ex;
+	reg halt_ex, jump_enable_int;
     reg [31:00] rs1_int, rs2_int;
 
     wire [6:0] opcode = {iw_in[6:0]};               // Extract opcode from Instruction Word
@@ -39,8 +39,21 @@ module rv32i_idTop
     always_ff @ (posedge clk)
     begin
 
-        if (halt_ex == 1'b1 || jump_enable == 1'b1)     iw_out <= 32'h13;   // Set as no-op
-        else                                            iw_out <= iw_in;    // Pass them on to the next module stage
+        if (halt_ex)     iw_out <= 32'h13;          // Set as no-op if flag is encountered
+
+        else if (jump_enable)
+        begin
+            jump_enable_int <= 1;                   // Set an internal flag for the next clock cycle
+            iw_out <= iw_in;                        // Push out the Branch Instruction down the pipeline
+        end
+
+        else if (jump_enable_int)
+        begin
+            iw_out <= 32'h13;                       // Set as no-op if the flag has been set in the previous clock cycle
+            jump_enable_int <= 0;                   // Clear flag
+        end
+
+        else    iw_out <= iw_in;                    // Pass them on to the next module stage
 
         pc_out <= pc_in;                            // Pass them on to the next module stage
         wb_reg <= iw_in[11:07];                     // Destination Register for Register Interface
@@ -67,6 +80,11 @@ module rv32i_idTop
         */
         if (opcode == 7'b1110011) halt_ex = 1'b1;
         if (reset == 1'b1)
+        begin
+            halt_ex = 1'b0;
+            jump_enable = 0;
+        end
+        else
         begin
             halt_ex = 1'b0;
             jump_enable = 0;
@@ -201,6 +219,7 @@ module rv32i_idTop
 
         end
 
+        // Leave nothing dangling or Quartus Prime will complain about inferred latches
         else
         begin
             jump_addr <= pc_in;                                                                                             // Follow regular program execution flow

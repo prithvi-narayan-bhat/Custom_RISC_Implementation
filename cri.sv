@@ -2,11 +2,11 @@
     Top code to test all other modules
 */
 module cri(
-        input MAX10_CLK1_50,
+        input ADC_CLK_10,
         input [1:0] KEY
     );
 
-    wire clk = MAX10_CLK1_50;
+    wire clk = ADC_CLK_10;
 
     reg reset, pre_reset;
     wire wb_en_stage2, wb_en_stage3, wb_en_stage4, wb_en_stage5;
