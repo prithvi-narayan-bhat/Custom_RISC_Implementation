@@ -12,13 +12,17 @@ module rv32i_ifTop(
 
     reg [31:0] pc = 32'd0;
 
+    wire jump_enable_int;
+
+    assign jump_enable_int = jump_enable;
+
     // set program counter
     always_ff @ (posedge clk)
     begin
         if (reset) pc <= 32'd0;                     // Reset Program Counter
         else
         begin
-            if (jump_enable)    pc <= jump_addr;    // Set Jump destination
+            if (jump_enable_int)pc <= jump_addr;    // Set Jump destination
             else                pc <= pc + 32'd4;   // Increment Program Counter
         end
 

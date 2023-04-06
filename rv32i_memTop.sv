@@ -14,15 +14,26 @@ module rv32i_memTop(
 
     always_ff @ (posedge clk)
     begin
-        iw_out <= iw_in;                    // Pass onto wbTop module
-        pc_out <= pc_in;                    // Pass onto wbTop module
-        alu_out <= alu_in;                  // Pass onto wbTop module
-        wb_en_out <= wb_en_in;              // Pass onto wbTop module
-        wb_reg_out <= wb_reg_in;
+        if (reset)
+        begin
+            iw_out <= 0;                // Pass onto wbTop module
+            pc_out <= 0;                // Pass onto wbTop module
+            alu_out <= 0;               // Pass onto wbTop module
+            wb_en_out <= 0;             // Pass onto wbTop module
+            wb_reg_out <= 0;
+        end
+        else
+        begin
+            iw_out <= iw_in;            // Pass onto wbTop module
+            pc_out <= pc_in;            // Pass onto wbTop module
+            alu_out <= alu_in;          // Pass onto wbTop module
+            wb_en_out <= wb_en_in;      // Pass onto wbTop module
+            wb_reg_out <= wb_reg_in;
+        end
     end
 
-    assign df_mem_enable = wb_en_in;
-    assign df_mem_reg    = wb_reg_in;
-    assign df_mem_data   = alu_in;
+    assign df_mem_enable = wb_en_out;
+    assign df_mem_reg    = wb_reg_out;
+    assign df_mem_data   = alu_out;
 
 endmodule

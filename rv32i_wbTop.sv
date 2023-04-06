@@ -12,12 +12,19 @@ module rv32i_wbTop(
         output reg [31:0] df_wb_data        // Writeback data at the wbTop stage
     );
 
-        assign wb_data = alu_in;
-        assign wb_en_out = wb_en_in;
-        assign wb_reg_out = wb_reg_in;
+    always_ff @ (posedge clk)
+    begin
+        if (reset)  wb_en_out <= 0;
+        else        wb_en_out <= wb_en_in;
 
-        assign df_wb_enable = wb_en_in;
-        assign df_wb_reg    = wb_reg_in;
-        assign df_wb_data   = alu_in;
+    end
+
+    assign wb_data = alu_in;
+    // assign wb_en_out = wb_en_in;
+    assign wb_reg_out = wb_reg_in;
+
+    assign df_wb_enable = wb_en_out;
+    assign df_wb_reg    = wb_reg_out;
+    assign df_wb_data   = alu_in;
 
 endmodule

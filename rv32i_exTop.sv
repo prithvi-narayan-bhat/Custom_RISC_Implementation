@@ -218,16 +218,25 @@ module rv32i_exTop(
     // Trigger condition for latching onto D flip-flop = reset button press
     always_ff @ (posedge(clk))
     begin
-        if (reset)  alu_out <= 32'b0;
-        else        alu_out <= alu_temp;
-
-        iw_out <= iw_in;                    // Pass them on to the next module stage
-        pc_out <= pc_in;                    // Pass them on to the next module stage
-        wb_reg_out <= wb_reg_in;
-        wb_en_out <= wb_en_in;              // Pass them on to the next module stage
+        if (reset)
+        begin
+            alu_out <= 32'b0;
+            iw_out <= 0;
+            pc_out <= 0;
+            wb_reg_out <= 0;
+            wb_en_out <= 0;
+        end
+        else
+        begin
+            alu_out <= alu_temp;
+            iw_out <= iw_in;                // Pass it on | to memTop module
+            pc_out <= pc_in;                // Pass it on | to memTop module
+            wb_reg_out <= wb_reg_in;        // Pass it on | to memTop module
+            wb_en_out <= wb_en_in;          // Pass it on | to memTop module
+        end
     end
 
-    assign df_ex_enable = wb_en_in;
-    assign df_ex_reg    = wb_reg_in;
-    assign df_ex_data   = alu_temp;
+    assign df_ex_enable = wb_en_out;        // Forwarded to idTop module
+    assign df_ex_reg    = wb_reg_out;       // Forwarded to idTop module
+    assign df_ex_data   = alu_temp;         // Forwarded to idTop module
 endmodule

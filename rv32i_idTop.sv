@@ -31,7 +31,7 @@ module rv32i_idTop
     assign rs1_reg = iw_in[19:15];                  // Calculate rs1 from Instruction Word
     assign rs2_reg = iw_in[24:20];                  // Calculate rs2 from Instruction Word
 
-	reg halt_ex, jump_enable_int;
+	reg halt_ex, jump_en_flag, jump_en_int;
     reg [31:00] rs1_int, rs2_int;
 
     wire [6:0] opcode = {iw_in[6:0]};               // Extract opcode from Instruction Word
@@ -39,18 +39,20 @@ module rv32i_idTop
     always_ff @ (posedge clk)
     begin
 
-        if (halt_ex)     iw_out <= 32'h13;          // Set as no-op if flag is encountered
+        if (reset)  iw_out <= 0;
 
-        else if (jump_enable)
+        else if (halt_ex)   iw_out <= 32'h13;       // Set as no-op if flag is encountered
+
+        else if (jump_en_int)
         begin
-            jump_enable_int <= 1;                   // Set an internal flag for the next clock cycle
+            jump_en_flag <= 1;                      // Set an internal flag for the next clock cycle
             iw_out <= iw_in;                        // Push out the Branch Instruction down the pipeline
         end
 
-        else if (jump_enable_int)
+        else if (jump_en_flag)
         begin
             iw_out <= 32'h13;                       // Set as no-op if the flag has been set in the previous clock cycle
-            jump_enable_int <= 0;                   // Clear flag
+            jump_en_flag <= 0;                      // Clear flag
         end
 
         else    iw_out <= iw_in;                    // Pass them on to the next module stage
@@ -66,29 +68,29 @@ module rv32i_idTop
     always_ff @ (*)
     begin
         if (
+		        opcode == 7'b0100011 ||		        // SB, SH, SW
                 opcode == 7'b1100011 ||             // BEQ, BNE, BLT, BGE, BLTU, BGEU
                 opcode == 7'b1100111 ||             // JALR
                 opcode == 7'b1101111 ||             // JAL
                 opcode == 7'b0001111 ||             // FENCE
                 opcode == 7'b1110011                // EBREAK, ECALL
-            )   wb_en_out <= 0;                     // For instructions that don't require writebacks
-        else    wb_en_out <= 1;                     // All others require writebacks
+            )               wb_en_out <= 0;         // For instructions that don't require writebacks
+        else if (reset)     wb_en_out <= 0;         // Reset condition
+        else                wb_en_out <= 1;         // All others require writebacks
 
         /* EBreak
             Set a flag if the Ebreak opcode is encountered
             The flag will be synchronously read in a parallel always block and acted upon
         */
-        if (opcode == 7'b1110011) halt_ex = 1'b1;
-        if (reset == 1'b1)
-        begin
-            halt_ex = 1'b0;
-            jump_enable = 0;
-        end
-        else
-        begin
-            halt_ex = 1'b0;
-            jump_enable = 0;
-        end
+        if (opcode == 7'b1110011)   halt_ex = 1;
+        else if (reset)             halt_ex = 0;
+        else                        halt_ex = 0;
+
+        /*
+            Jump enable on jump signal detection
+        */
+        if (reset)  jump_enable = 0;
+        else        jump_enable = jump_en_int;
 
         /* Data Forwarding
             Determine if data hazards exist by checking the following conditions:
@@ -114,13 +116,13 @@ module rv32i_idTop
         if(opcode == 7'b1100111)                                                                                // JALR instruction
         begin
             jump_addr <= rs1_int + {{20{iw_in[31]}}, iw_in[31:20]};                                             // Set jump destination
-            jump_enable <= 1;                                                                                   // Set jump enable flag
+            jump_en_int <= 1;                                                                                   // Set jump enable flag
         end
 
         else if (opcode == 7'b1101111)                                                                          // JAL instruction
         begin
             jump_addr <= pc_in + {2 * {{12{iw_in[31]}}, iw_in[31], iw_in[19:12], iw_in[20], iw_in[30:21]}};     // Set jump destination
-            jump_enable <= 1;                                                                                   // Set jump enable flag
+            jump_en_int <= 1;                                                                                   // Set jump enable flag
         end
 
         else if (opcode == 7'b1100011)                                                                          // BRANCH instructions
@@ -131,11 +133,11 @@ module rv32i_idTop
                     if (rs1_int == rs2_int)                                                                                 // BEQ instruction
                     begin
                         jump_addr <= pc_in + {2 * {{20{iw_in[31]}}, iw_in[31], iw_in[07], iw_in[30:25], iw_in[11:08]}};     // Set jump destination
-                        jump_enable <= 1;                                                                                   // Set jump enable flag
+                        jump_en_int <= 1;                                                                                   // Set jump enable flag
                     end
                     else
                     begin
-                        jump_enable <= 0;                                                                                   // Follow regular program execution flow
+                        jump_en_int <= 0;                                                                                   // Follow regular program execution flow
                         jump_addr <= 0;                                                                                     // Clear Jump flag
                     end
                 end
@@ -145,11 +147,11 @@ module rv32i_idTop
                     if (rs1_int != rs2_int)                                                                                 // BNE instruction
                     begin
                         jump_addr <= pc_in + {2 * {{20{iw_in[31]}}, iw_in[31], iw_in[07], iw_in[30:25], iw_in[11:08]}};     // Set jump destination
-                        jump_enable <= 1;                                                                                   // Set jump enable flag
+                        jump_en_int <= 1;                                                                                   // Set jump enable flag
                     end
                     else
                     begin
-                        jump_enable <= 0;                                                                                   // Follow regular program execution flow
+                        jump_en_int <= 0;                                                                                   // Follow regular program execution flow
                         jump_addr <= 0;                                                                                     // Clear Jump flag
                     end
                 end
@@ -159,11 +161,11 @@ module rv32i_idTop
                     if (signed'(rs1_int) < signed'(rs2_int))                                                                // BLT instruction
                     begin
                         jump_addr <= pc_in + {2 * {{20{iw_in[31]}}, iw_in[31], iw_in[07], iw_in[30:25], iw_in[11:08]}};     // Set jump destination
-                        jump_enable <= 1;                                                                                   // Set jump enable flag
+                        jump_en_int <= 1;                                                                                   // Set jump enable flag
                     end
                     else
                     begin
-                        jump_enable <= 0;                                                                                   // Follow regular program execution flow
+                        jump_en_int <= 0;                                                                                   // Follow regular program execution flow
                         jump_addr <= 0;                                                                                     // Clear Jump flag
                     end
                 end
@@ -173,11 +175,11 @@ module rv32i_idTop
                     if (signed'(rs1_int) >= signed'(rs2_int))                                                               // BGE instruction
                     begin
                         jump_addr <= pc_in + {2 * {{20{iw_in[31]}}, iw_in[31], iw_in[07], iw_in[30:25], iw_in[11:08]}};     // Set jump destination
-                        jump_enable <= 1;                                                                                   // Set jump enable flag
+                        jump_en_int <= 1;                                                                                   // Set jump enable flag
                     end
                     else
                     begin
-                        jump_enable <= 0;                                                                                   // Follow regular program execution flow
+                        jump_en_int <= 0;                                                                                   // Follow regular program execution flow
                         jump_addr <= 0;                                                                                     // Clear Jump flag
                     end
                 end
@@ -187,11 +189,11 @@ module rv32i_idTop
                     if (rs1_int < rs2_int)                                                                                  // BLTU instruction
                     begin
                         jump_addr <= pc_in + {2 * {{20{iw_in[31]}}, iw_in[31], iw_in[07], iw_in[30:25], iw_in[11:08]}};     // Set jump destination
-                        jump_enable <= 1;                                                                                   // Set jump enable flag
+                        jump_en_int <= 1;                                                                                   // Set jump enable flag
                     end
                     else
                     begin
-                        jump_enable <= 0;                                                                                   // Follow regular program execution flow
+                        jump_en_int <= 0;                                                                                   // Follow regular program execution flow
                         jump_addr <= 0;                                                                                     // Clear Jump flag
                     end
                 end
@@ -201,19 +203,19 @@ module rv32i_idTop
                     if (rs1_int >= rs2_int)                                                                                 // BGE instruction
                     begin
                         jump_addr <= pc_in + {2 * {{20{iw_in[31]}}, iw_in[31], iw_in[07], iw_in[30:25], iw_in[11:08]}};     // Set jump destination
-                        jump_enable <= 1;                                                                                   // Set jump enable flag
+                        jump_en_int <= 1;                                                                                   // Set jump enable flag
                     end
                     else
                     begin
-                        jump_enable <= 0;                                                                                   // Follow regular program execution flow
+                        jump_en_int <= 0;                                                                                   // Follow regular program execution flow
                         jump_addr <= 0;                                                                                     // Clear Jump flag
                     end
                 end
 
                 default:
                 begin
-                    jump_addr <= pc_in;                                                                                     // Follow regular program execution flow
-                    jump_enable <= 0;                                                                                       // Clear jump enable flag
+                    jump_addr <= 0;                                                                                         // Follow regular program execution flow
+                    jump_en_int <= 0;                                                                                       // Clear jump enable flag
                 end
             endcase
 
@@ -222,8 +224,8 @@ module rv32i_idTop
         // Leave nothing dangling or Quartus Prime will complain about inferred latches
         else
         begin
-            jump_addr <= pc_in;                                                                                             // Follow regular program execution flow
-            jump_enable <= 0;                                                                                               // Clear jump enable flag
+            jump_addr <= 0;                                                                                                 // Follow regular program execution flow
+            jump_en_int <= 0;                                                                                               // Clear jump enable flag
         end
     end
 endmodule
