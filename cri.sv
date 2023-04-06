@@ -8,7 +8,7 @@ module cri(
 
     wire clk = ADC_CLK_10;
 
-    reg reset, pre_reset;
+    reg reset, pre_reset, pre_pre_reset;
     wire wb_en_stage2, wb_en_stage3, wb_en_stage4, wb_en_stage5;
     wire [04:00] rs1_reg, rs2_reg, wb_reg_stage2, wb_reg_stage3, wb_reg_stage4, wb_reg_stage5;
     wire [31:02] memIfAddr;
@@ -16,18 +16,18 @@ module cri(
     wire [31:00] iw_stage1, iw_stage2, iw_stage3,iw_stage4, pc_stage1, pc_stage2, pc_stage3, pc_stage4;
     wire [31:00] rs1_data_out, rs2_data_out;
 
-    wire df_ex_enable, df_mem_enable, df_wb_enable, jump_enable;
+    wire df_ex_enable, df_mem_enable, df_wb_enable, jump_en_stage1, jump_en_stage2;
     wire [04:00] df_ex_reg, df_mem_reg, df_wb_reg;
     wire [31:00] df_ex_data, df_mem_data, df_wb_data, jump_addr;
 
     // Include files
     `include "rv32i_memInterface.sv"    // Files to format data for Dual Port RAM module
 
-    // handle input metastability safely
-    always_ff @ (posedge(clk))
+    // Handle input metastability safely
+    always_ff @ (posedge clk)
     begin
-        pre_reset <= !KEY[0];
-        reset <= pre_reset;
+        pre_pre_reset <= !KEY[0];
+        pre_reset <= pre_pre_reset;
     end
 
     rv32i_syncDualPortRam ramTest(      // Instantiate Dual Port RAM module
@@ -56,26 +56,30 @@ module cri(
         .reset(reset),                  // Reset
         .memIfData(i_rdata),            // Data                                     | From SyncDualPortRam module
 
-        .jump_enable(jump_enable),      // Jump enable                              | From idTop module
+        .jump_en_in(jump_en_stage2),    // Jump enable                              | From idTop module
         .jump_addr(jump_addr),          // Jump destination                         | From idTop module
 
         .memIfAddr(memIfAddr),          // Return value                             | To SyncDualPortRam module
         .iw_out(iw_stage1),             // Instruction Word                         | To idTop module
-        .pc_out(pc_stage1)              // Program Counter as calculated here       | To idTop module
+        .pc_out(pc_stage1),             // Program Counter as calculated here       | To idTop module
+        .jump_en_out(jump_en_stage1)    // Jump_en from the previous cycle          | To idTop module
     );
 
     rv32i_idTop idTopInstance(          // Instantiate the Instruction Decode stage
         .clk(clk),                      // Clock
         .reset(reset),                  // Reset
+
         .iw_in(iw_stage1),              // Instruction Word                         | From ifTop module
         .pc_in(pc_stage1),              // Program Counter                          | From ifTop module
+        .jump_en_in(jump_en_stage1),    // Jump enable signal from previous cycle   | from ifTop module
+
         .rs1_data_in(rs1_data),         // Register data from Register Interface    | From regFs module
         .rs2_data_in(rs2_data),         // Register data from Register Interface    | From regFs module
 
         .rs1_reg(rs1_reg),              // Register to read from                    | To regFs module
         .rs2_reg(rs2_reg),              // Register to read from                    | To regFs module
 
-        .jump_enable(jump_enable),      // Jump enable                              | To ifTop module
+        .jump_en_out(jump_en_stage2),   // Jump enable                              | To ifTop module
         .jump_addr(jump_addr),          // Jump destination                         | To ifTop module
 
         .df_ex_enable(df_ex_enable),    // Forwaded values                          | From exTop module
@@ -115,9 +119,9 @@ module cri(
         .wb_en_out(wb_en_stage3),       // Writeback enable/disable                 | To memTop module
         .wb_reg_out(wb_reg_stage3),     // Writeback register                       | To memTop module
 
-        .df_ex_enable(df_ex_enable),
-        .df_ex_reg(df_ex_reg),
-        .df_ex_data(df_ex_data)
+        .df_ex_enable(df_ex_enable),    // Forwarded data to handle data hazards    | To idTop module
+        .df_ex_reg(df_ex_reg),          // Forwarded data to handle data hazards    | To idTop module
+        .df_ex_data(df_ex_data)         // Forwarded data to handle data hazards    | To idTop module
     );
 
     rv32i_memTop memTopInstance(        // Instantiate Memory stage
@@ -136,14 +140,15 @@ module cri(
         .wb_reg_out(wb_reg_stage4),     // Destination register                     | To wbTop module
         .alu_out(alu_out_stage4),       // Writeback value                          | TO wbTop module
 
-        .df_mem_enable(df_mem_enable),
-        .df_mem_reg(df_mem_reg),
-        .df_mem_data(df_mem_data)
+        .df_mem_enable(df_mem_enable),  // Forwarded data to handle data hazards    | To idTop module
+        .df_mem_reg(df_mem_reg),        // Forwarded data to handle data hazards    | To idTop module
+        .df_mem_data(df_mem_data)       // Forwarded data to handle data hazards    | To idTop module
     );
 
     rv32i_wbTop wbTopinstance(          // Instantiate WriteBack stage
         .clk(clk),                      // Clock
         .reset(reset),                  // Reset
+
         .pc_in(pc_stage4),              // Current Program Counter                  | From memTop module
         .iw_in(iw_stage4),              // Current Instruction Word                 | From memTop module
         .wb_en_in(wb_en_stage4),        // Writeback enable/disable                 | From memTop module
@@ -154,8 +159,11 @@ module cri(
         .wb_reg_out(wb_reg_stage5),     // Destination Register                     | To regFsTop module
         .wb_en_out(wb_en_stage5),       // Writeback enable/disbale                 | To regFsTop module
 
-        .df_wb_enable(df_wb_enable),
-        .df_wb_reg(df_wb_reg),
-        .df_wb_data(df_wb_data)
+        .df_wb_enable(df_wb_enable),    // Forwarded data to handle data hazards    | To idTop module
+        .df_wb_reg(df_wb_reg),          // Forwarded data to handle data hazards    | To idTop module
+        .df_wb_data(df_wb_data)         // Forwarded data to handle data hazards    | To idTop module
     );
+
+    assign reset = pre_reset;
+
 endmodule

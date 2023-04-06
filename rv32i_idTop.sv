@@ -2,7 +2,8 @@ module rv32i_idTop
     (
         input clk, reset,                           // System clock and synchronous reset
         input [31:0] iw_in, pc_in,                  // From ifTop
-        input [31:0] rs1_data_in, rs2_data_in,            // From Register interface
+        input [31:0] rs1_data_in, rs2_data_in,      // From Register interface
+        input jump_en_in,                           // Form ifTop module
 
         // Forwarded data from exTop stage
         input df_ex_enable,                         // Writeback enable signal at the exTop stage
@@ -24,7 +25,7 @@ module rv32i_idTop
         output reg [31:0] pc_out, iw_out,           // To exTop
         output reg [31:00] rs1_data_out, rs2_data_out,
 
-        output jump_enable,                         // Enable jump          | To ifTop module
+        output jump_en_out,                         // Enable jump          | To ifTop module
         output reg [31:0] jump_addr                 // Address to jump to   | To ifTop module
     );
 
@@ -89,8 +90,9 @@ module rv32i_idTop
         /*
             Jump enable on jump signal detection
         */
-        if (reset)  jump_enable = 0;
-        else        jump_enable = jump_en_int;
+        if (reset)                      jump_en_out = 0;                // Regardless nobody jumps on reset
+        else if (jump_en_in)            jump_en_out = 0;                // Indicates that the previous instruction was a jump
+        else                            jump_en_out = jump_en_int;      // Set the jump
 
         /* Data Forwarding
             Determine if data hazards exist by checking the following conditions:
@@ -113,7 +115,13 @@ module rv32i_idTop
             Set a flag and calculate the address appropriately
             clear the flag if no jump is required or the branch condition fails
         */
-        if(opcode == 7'b1100111)                                                                                // JALR instruction
+        if (jump_en_in)
+        begin
+            jump_en_int <= 0;
+            jump_addr <=0;
+        end
+
+        else if(opcode == 7'b1100111)                                                                           // JALR instruction
         begin
             jump_addr <= rs1_int + {{20{iw_in[31]}}, iw_in[31:20]};                                             // Set jump destination
             jump_en_int <= 1;                                                                                   // Set jump enable flag
