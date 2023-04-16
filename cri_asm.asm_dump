@@ -5,9 +5,26 @@ cri_asm:     file format elf32-littleriscv
 Disassembly of section .text:
 
 00010074 <_start>:
-   10074:	00a30313          	addi	t1,t1,10
-   10078:	00b28293          	addi	t0,t0,11
-   1007c:	006282b3          	add	t0,t0,t1
-   10080:	005303b3          	add	t2,t1,t0
-   10084:	007302b3          	add	t0,t1,t2
-   10088:	00100073          	ebreak
+   10074:	00000013          	nop
+   10078:	00528313          	addi	t1,t0,5
+   1007c:	00028393          	mv	t2,t0
+   10080:	00a28e13          	addi	t3,t0,10
+   10084:	01c35463          	bge	t1,t3,1008c <label1>
+   10088:	00138393          	addi	t2,t2,1
+
+0001008c <label1>:
+   1008c:	0080006f          	j	10094 <label2>
+   10090:	00138393          	addi	t2,t2,1
+
+00010094 <label2>:
+   10094:	008000ef          	jal	ra,1009c <label3>
+   10098:	00138393          	addi	t2,t2,1
+
+0001009c <label3>:
+   1009c:	00138393          	addi	t2,t2,1
+   100a0:	01428e93          	addi	t4,t0,20
+   100a4:	000e8367          	jalr	t1,t4
+   100a8:	00138393          	addi	t2,t2,1
+   100ac:	000e8f03          	lb	t5,0(t4)
+   100b0:	01ee8023          	sb	t5,0(t4)
+   100b4:	00100073          	ebreak

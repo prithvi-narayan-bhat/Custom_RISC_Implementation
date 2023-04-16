@@ -10,21 +10,34 @@ module rv32i_exTop(
         input clk, reset, wb_en_in,                             // System Clock
         input reg [4:0] wb_reg_in,
         input [31:0] pc_in, iw_in, rs1_data_in, rs2_data_in,    // Inputs are received from the Instruction Decode stage
+
+        input reg [1:0] width_in,                               // Width to read/write      | From idTop module
+
+        output reg [31:0] rs2_data_out,                         // Pass input data          | To memTop module
+        output reg [1:0] width_out,                             // Width to read/write      | To memTop module
+        output reg [3:0] bank_en_out,                           // Bank enable              | To memTop module
+        output io_en_out, mem_en_out,                           // Memory or IO enable      | To memTop module
+
         output reg [31:0] alu_out, iw_out, pc_out, wb_en_out,   // To Memory
         output reg [4:0] wb_reg_out,
 
         // Forwarded data from exTop stage
         output df_ex_enable,                // Writeback enable signal at the exTop stage
         output reg [4:0] df_ex_reg,         // Writeback register at the exTop stage
-        output reg [31:0] df_ex_data       // Writeback data at the exTop stage
+        output reg [31:0] df_ex_data        // Writeback data at the exTop stage
     );
 
-    reg [31:0] alu_temp = 0;               // Internal storage
+    // Include files
+    `include "rv32i_memInterface.sv"    // Files to format data for Dual Port RAM module
+
+    reg [31:0] alu_temp = 0;                // Internal storage
     wire [2:0] func3 = {iw_in[14:12]};      // Extract func3 from Instruction Word
     wire [6:0] func7 = {iw_in[31:25]};      // Extract func7 from Instruction Word
     wire [4:0] shamt = {iw_in[24:20]};      // Extract shamt from Instruction Word
     wire [6:0] opcde = {iw_in[6:0]};        // Extract opcode from Instruction Word
     wire [6:0] i1    = {iw_in[31:25]};      // Extract encoding from Instruction Word
+
+    wire io_en_int, mem_en_int;             // Internal variables
 
     // The operation can be determined by scrutinising opcode func3 and func7 bits. The following case blocks achieve this
     always @ (func3, func7, shamt, opcde, reset, iw_in, rs1_data_in, rs2_data_in, pc_in, i1)
@@ -218,23 +231,48 @@ module rv32i_exTop(
     // Trigger condition for latching onto D flip-flop = reset button press
     always_ff @ (posedge(clk))
     begin
-        if (reset)
+        if (alu_temp[31] == 1)
         begin
-            alu_out <= 32'b0;
-            iw_out <= 0;
-            pc_out <= 0;
-            wb_reg_out <= 0;
-            wb_en_out <= 0;
+            io_en_int   <= 1;               // Enable io if alu_out[31] is 1
+            mem_en_int  <= 0;               // Disable mem
+        end
+        else if (alu_temp[31] == 0)
+        begin
+            io_en_int   <= 0;               // Enable mem if alu_out[31] is 0
+            mem_en_int  <= 1;               // Disable io
         end
         else
         begin
-            alu_out <= alu_temp;
-            iw_out <= iw_in;                // Pass it on | to memTop module
-            pc_out <= pc_in;                // Pass it on | to memTop module
-            wb_reg_out <= wb_reg_in;        // Pass it on | to memTop module
-            wb_en_out <= wb_en_in;          // Pass it on | to memTop module
+            io_en_int   <= 0;               // Leave nothing hanging
+            mem_en_int  <= 0;               // Leave nothing hanging
+        end
+
+        if (reset)
+        begin
+            alu_out     <= 32'b0;           // Clear on reset
+            iw_out      <= 0;               // Clear on reset
+            pc_out      <= 0;               // Clear on reset
+            wb_reg_out  <= 0;               // Clear on reset
+            wb_en_out   <= 0;               // Clear on reset
+            width_out   <= 0;               // Clear on reset
+            io_en_int   <= 0;               // Clear on reset
+            mem_en_int  <= 0;               // Clear on reset
+        end
+        else
+        begin
+            alu_out     <= alu_temp;
+            iw_out      <= iw_in;           // Pass it on | to memTop module
+            pc_out      <= pc_in;           // Pass it on | to memTop module
+            wb_reg_out  <= wb_reg_in;       // Pass it on | to memTop module
+            wb_en_out   <= wb_en_in;        // Pass it on | to memTop module
+            width_out   <= width_in;        // Pass it on | to memTop module
+            io_en_out   <= io_en_int;       // Pass it on | To memTop module
+            mem_en_out  <= mem_en_int;      // Pass it on | To memTop module
+            rs2_data_out<= rs2_data_in;     // Pass it on | To memTop module
         end
     end
+
+    assign bank_en_out = writeBankEnable(alu_out[1:0], width_in);   // Calculate bank enable signal
 
     assign df_ex_enable = wb_en_out;        // Forwarded to idTop module
     assign df_ex_reg    = wb_reg_out;       // Forwarded to idTop module

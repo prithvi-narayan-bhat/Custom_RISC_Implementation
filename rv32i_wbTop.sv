@@ -20,7 +20,6 @@ module rv32i_wbTop(
     end
 
     assign wb_data = alu_in;
-    // assign wb_en_out = wb_en_in;
     assign wb_reg_out = wb_reg_in;
 
     assign df_wb_enable = wb_en_out;

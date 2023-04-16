@@ -6,36 +6,40 @@ module rv32i_idTop
         input jump_en_in,                           // Form ifTop module
 
         // Forwarded data from exTop stage
-        input df_ex_enable,                         // Writeback enable signal at the exTop stage
-        input [4:0] df_ex_reg,                      // Writeback register at the exTop stage
-        input [31:0] df_ex_data,                    // Writeback data at the exTop stage
+        input df_ex_enable,                         // Writeback enable signal      | From exTop module
+        input [4:0] df_ex_reg,                      // Writeback register           | From exTop module
+        input [31:0] df_ex_data,                    // Writeback data               | From exTop module
 
         // Forwarded data from memTop stage
-        input df_mem_enable,                        // Writeback enable signal at the exTop stage
-        input [4:0] df_mem_reg,                     // Writeback register at the exTop stage
-        input [31:0] df_mem_data,                   // Writeback data at the exTop stage
+        input df_mem_enable,                        // Writeback enable signal      | From memTop module
+        input [4:0] df_mem_reg,                     // Writeback register           | From memTop module
+        input [31:0] df_mem_data,                   // Writeback data               | From memTop module
 
         // Forwarded data from wbTop stage
-        input df_wb_enable,                         // Writeback enable signal at the exTop stage
-        input [4:0] df_wb_reg,                      // Writeback register at the exTop stage
-        input [31:0] df_wb_data,                    // Writeback data at the exTop stage
+        input df_wb_enable,                         // Writeback enable signal      | From wbTop module
+        input [4:0] df_wb_reg,                      // Writeback register           | From wbTop module
+        input [31:0] df_wb_data,                    // Writeback data               | From wbTop module
 
         output wb_en_out,
-        output reg [4:0] rs1_reg, rs2_reg, wb_reg,  // To Register interface
-        output reg [31:0] pc_out, iw_out,           // To exTop
+        output reg [4:0] rs1_reg, rs2_reg, wb_reg,  //                              | To regTop module
+        output reg [31:0] pc_out, iw_out,           //                              | To exTop module
         output reg [31:00] rs1_data_out, rs2_data_out,
 
-        output jump_en_out,                         // Enable jump          | To ifTop module
-        output reg [31:0] jump_addr                 // Address to jump to   | To ifTop module
+        output jump_en_out,                         // Enable jump                  | To ifTop module
+        output reg [31:0] jump_addr,                // Address to jump to           | To ifTop module
+
+        output reg [1:0] width_out                  // Width to read/write          | To exTop module
+
     );
 
-    assign rs1_reg = iw_in[19:15];                  // Calculate rs1 from Instruction Word
-    assign rs2_reg = iw_in[24:20];                  // Calculate rs2 from Instruction Word
+    assign rs1_reg = iw_in[19:15];                  // Extract rs1 from Instruction Word
+    assign rs2_reg = iw_in[24:20];                  // Extract rs2 from Instruction Word
 
 	reg halt_ex, jump_en_flag, jump_en_int;
     reg [31:00] rs1_int, rs2_int;
 
     wire [6:0] opcode = {iw_in[6:0]};               // Extract opcode from Instruction Word
+    wire [2:0] func3  = {iw_in[14:12]};             // Extract func3 from Instruction Word
 
     always_ff @ (posedge clk)
     begin
@@ -68,6 +72,11 @@ module rv32i_idTop
     // Determine if writeback must be enabled depending on the opcode in the Instruction Word
     always_ff @ (*)
     begin
+
+        /*
+            Writeback
+                To write or not into register File System
+        */
         if (
 		        opcode == 7'b0100011 ||		        // SB, SH, SW
                 opcode == 7'b1100011 ||             // BEQ, BNE, BLT, BGE, BLTU, BGEU
@@ -93,6 +102,33 @@ module rv32i_idTop
         if (reset)                      jump_en_out = 0;                // Regardless nobody jumps on reset
         else if (jump_en_in)            jump_en_out = 0;                // Indicates that the previous instruction was a jump
         else                            jump_en_out = jump_en_int;      // Set the jump
+
+        /*
+            Memory interface handling
+        */
+        if (opcode == 7'b0000011)                                       // Load Instructions
+        begin
+            case (func3)
+                3'b000:     width_out <= 2'd0;                          // LB instruction
+                3'b001:     width_out <= 2'd1;                          // LH instruction
+                3'b010:     width_out <= 2'd2;                          // LW instruction
+                3'b100:     width_out <= 2'd0;                          // LBU instruction
+                3'b101:     width_out <= 2'd0;                          // LHU instruction
+                default:    width_out <= 2'd0;                          // Leave nothing hanging
+            endcase
+        end
+        else if (opcode == 7'b0100011)                                  // Store Instructions
+        begin
+            case (func3)
+                3'b000:     width_out <= 2'd0;                          // SB instruction
+                3'b001:     width_out <= 2'd1;                          // SH instruction
+                3'b010:     width_out <= 2'd2;                          // SW instruction
+                default:    width_out <= 2'd0;                          // Leave nothing hanging
+            endcase
+        end
+        else if (reset)     width_out <= 0;                             // Clear if reset
+        else                width_out <= 0;                             // Clear by default
+
 
         /* Data Forwarding
             Determine if data hazards exist by checking the following conditions:
@@ -135,7 +171,7 @@ module rv32i_idTop
 
         else if (opcode == 7'b1100011)                                                                          // BRANCH instructions
         begin
-            case (iw_in[14:12])
+            case (func3)
                 3'b000:
                 begin
                     if (rs1_int == rs2_int)                                                                                 // BEQ instruction

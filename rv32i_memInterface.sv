@@ -42,18 +42,18 @@ endfunction
     Function to shift rs2_data based on the address (alu_out).
     This ensure that the data bits are on the correct data bus lines
 */
-function logic [31:0] shifted_rs2_data(
+function logic [31:0] shifted_data(
         input logic [31:0] rs2_data,
         input logic [1:0] bank
     );
     case (bank)
-        2'b00:  shifted_rs2_data = rs2_data << 0;   // No shift required
-        2'b01:  shifted_rs2_data = rs2_data << 8;   // Shift by 8 bits
-        2'b10:  shifted_rs2_data = rs2_data << 16;  // Shift by 16 bits
-        2'b11:  shifted_rs2_data = rs2_data << 24;  // Shift by 24 bits
+        2'b00:  shifted_data = rs2_data << 0;           // No shift required
+        2'b01:  shifted_data = rs2_data << 8;           // Shift by 8 bits
+        2'b10:  shifted_data = rs2_data << 16;          // Shift by 16 bits
+        2'b11:  shifted_data = rs2_data << 24;          // Shift by 24 bits
     endcase
 
-    return shifted_rs2_data;
+    return shifted_data;
 endfunction
 
 /*
