@@ -22,14 +22,15 @@ module cri(
 
     wire [03:00] memif_be_stage4;
     wire [31:02] memif_addr_stage4;
-    wire [31:00] memif_wdata_stage4;
+    wire [31:00] memif_wdata_stage4, memif_rdata_stage4;
 
     wire [01:00] width_stage2, width_stage3, width_stage4;
 
     wire memif_we_stage3, memif_we_stage4;
     wire io_we_stage3, io_we_stage4;
     wire b_en_stage3;
-    wire [01:00] w_en_stage2, w_en_stage3, w_en_stage4;
+    wire w_en_stage2, w_en_stage3, w_en_stage4;
+    wire [01:00] src_sel_stage4;
 
     // Handle input metastability safely
     always @ (posedge clk)
@@ -37,6 +38,7 @@ module cri(
         pre_pre_reset <= !KEY[0];
         pre_reset <= pre_pre_reset;
     end
+    assign reset = !pre_reset & pre_pre_reset;
 
     rv32i_syncDualPortRam ramTest(      // Instantiate Dual Port RAM module
         .clk(clk),                      // Clock
@@ -107,7 +109,7 @@ module cri(
         .df_wb_reg(df_wb_reg),          // Forwaded values                          | From wbTop module
         .df_wb_data(df_wb_data),        // Forwaded values                          | From wbTop module
 
-        .src_sel_out(w_en_stage2),      // Write enable                             | To exTop module
+        .w_en_out(w_en_stage2),         // Write enable                             | To exTop module
         .wb_reg(wb_reg_stage2),         // Register to write into                   | To exTop module
         .wb_en_out(wb_en_stage2),       // Writeback enable/disable                 | To exTop module
         .iw_out(iw_stage2),             // Instruction Word                         | To exTop module
@@ -126,14 +128,14 @@ module cri(
         .rs1_data_in(rs1_data_stage2),  // Data to manipulate                       | From regFs module
         .rs2_data_in(rs2_data_stage2),  // Data to manipulate                       | From regFs module
         .wb_reg_in(wb_reg_stage2),      // Writeback register                       | From idTop module
-        .src_sel_in(w_en_stage2),       // Write enable                             | From idTop module
+        .w_en_in(w_en_stage2),          // Write enable                             | From idTop module
 
         .alu_out(alu_out_stage3),       // Result of operations                     | To memTop & syncDualPortRam modules
         .pc_out(pc_stage3),             // Updated Program Counter                  | To memTop module
         .iw_out(iw_stage3),             // Updated Instruction Word                 | To memTop module
-        .wb_en_out(wb_en_stage3),       // Writeback enable/disable                 | To memTop module
+        .wk_en_out(wb_en_stage3),       // Writeback enable/disable                 | To memTop module
         .wb_reg_out(wb_reg_stage3),     // Writeback register                       | To memTop module
-        .src_sel_out(w_en_stage3),      // Write enable                             | To memTop module
+        .w_en_out(w_en_stage3),         // Write enable                             | To memTop module
         .rs2_data_out(rs2_data_stage3), // Write data                               | To memTop module
 
         .df_ex_enable(df_ex_enable),    // Forwarded data to handle data hazards    | To idTop module
@@ -150,14 +152,19 @@ module cri(
         .wb_reg_in(wb_reg_stage3),      // Destination register                     | From exTop module
         .alu_in(alu_out_stage3),        // Output from the ALU                      | From exTop module
         .wb_en_in(wb_en_stage3),        // Writeback enable/disable                 | From exTop module
-        .src_sel_in(w_en_stage3),       // Write enable                             | From exTop module
+        .w_en_in(w_en_stage3),          // Write enable                             | From exTop module
+        .rs2_data_in(rs2_data_stage3),  // Write data                               | From exTop module
+
+        .memif_rdata(d_rdata),          // Read data                                | From syncDualPortRam module
 
         .pc_out(pc_stage4),             // Updated Program Counter                  | To wbTop module
         .iw_out(iw_stage4),             // Updated Instruction Word                 | To wbTop module
         .wb_en_out(wb_en_stage4),       // Writeback enable/disable                 | To wbTop module
         .wb_reg_out(wb_reg_stage4),     // Destination register                     | To wbTop module
         .alu_out(alu_out_stage4),       // Writeback value                          | TO wbTop module
-        .src_sel_out(w_en_stage4),      // Write enable                             | To wbTop module
+        .w_en_out(w_en_stage4),         // Write enable                             | To wbTop module
+        .memif_rdata_out(memif_rdata_stage4),   // Read data                        | To wbTop module
+        .src_sel_out(src_sel_stage4),   // Desitnation selector                     | To wbTop module
 
         .df_mem_enable(df_mem_enable),  // Forwarded data to handle data hazards    | To idTop module
         .df_mem_reg(df_mem_reg),        // Forwarded data to handle data hazards    | To idTop module
@@ -176,7 +183,8 @@ module cri(
         .pc_in(pc_stage4),              // Current Program Counter                  | From memTop module
         .iw_in(iw_stage4),              // Current Instruction Word                 | From memTop module
         .wb_en_in(wb_en_stage4),        // Writeback enable/disable                 | From memTop module
-        .src_sel_in(w_en_stage4),       // Data source selector                     | From memTop module
+        .src_sel_in(src_sel_stage4),    // Data source selector                     | From memTop module
+        .memif_rdata(memif_rdata_stage4),   // Read data                            | From memTop module
         .wb_reg_in(wb_reg_stage4),      // Destination Register                     | From idTop module
         .alu_in(alu_out_stage4),        // Calculated output                        | From exTop module
 
@@ -188,7 +196,5 @@ module cri(
         .df_wb_reg(df_wb_reg),          // Forwarded data to handle data hazards    | To idTop module
         .df_wb_data(df_wb_data)         // Forwarded data to handle data hazards    | To idTop module
     );
-
-    assign reset = pre_reset;
 
 endmodule
