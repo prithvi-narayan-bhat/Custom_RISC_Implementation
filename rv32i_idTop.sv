@@ -24,6 +24,7 @@ module rv32i_idTop
         output reg [4:0] rs1_reg, rs2_reg, wb_reg,  // To Register interface
         output reg [31:0] pc_out, iw_out,           // To exTop
         output reg [31:00] rs1_data_out, rs2_data_out,
+        output reg [01:00] src_sel_out,             // Data source selector         | To exTop module
 
         output jump_en_out,                         // Enable jump          | To ifTop module
         output reg [31:0] jump_addr                 // Address to jump to   | To ifTop module
@@ -37,7 +38,7 @@ module rv32i_idTop
 
     wire [6:0] opcode = {iw_in[6:0]};               // Extract opcode from Instruction Word
 
-    always_ff @ (posedge clk)
+    always @ (posedge clk)
     begin
 
         if (reset)  iw_out <= 0;
@@ -66,7 +67,7 @@ module rv32i_idTop
     end
 
     // Determine if writeback must be enabled depending on the opcode in the Instruction Word
-    always_ff @ (*)
+    always @ (*)
     begin
         if (
 		        opcode == 7'b0100011 ||		        // SB, SH, SW
@@ -93,6 +94,14 @@ module rv32i_idTop
         if (reset)                      jump_en_out = 0;                // Regardless nobody jumps on reset
         else if (jump_en_in)            jump_en_out = 0;                // Indicates that the previous instruction was a jump
         else                            jump_en_out = jump_en_int;      // Set the jump
+
+        /*
+            Memory interface handling
+        */
+        if (reset)                      src_sel_out <= 0;               // Clear if reset
+        else if (opcode == 7'b0000011)  src_sel_out <= 1;               // Load Instructions
+        else if (opcode == 7'b0100011)  src_sel_out <= 2;               // Store Instructions
+        else                            src_sel_out <= 0;               // ALU output
 
         /* Data Forwarding
             Determine if data hazards exist by checking the following conditions:

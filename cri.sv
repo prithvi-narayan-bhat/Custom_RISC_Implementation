@@ -14,17 +14,25 @@ module cri(
     wire [31:02] memIfAddr;
     wire [31:00] rs1_data, rs2_data, alu_out_stage3, alu_out_stage4, alu_out_stage5, i_rdata, d_rdata, wb_data;
     wire [31:00] iw_stage1, iw_stage2, iw_stage3,iw_stage4, pc_stage1, pc_stage2, pc_stage3, pc_stage4;
-    wire [31:00] rs1_data_out, rs2_data_out;
+    wire [31:00] rs1_data_stage2, rs2_data_stage2, rs2_data_stage3, rs2_data_stage4;
 
     wire df_ex_enable, df_mem_enable, df_wb_enable, jump_en_stage1, jump_en_stage2;
     wire [04:00] df_ex_reg, df_mem_reg, df_wb_reg;
     wire [31:00] df_ex_data, df_mem_data, df_wb_data, jump_addr;
 
-    // Include files
-    `include "rv32i_memInterface.sv"    // Files to format data for Dual Port RAM module
+    wire [03:00] memif_be_stage4;
+    wire [31:02] memif_addr_stage4;
+    wire [31:00] memif_wdata_stage4;
+
+    wire [01:00] width_stage2, width_stage3, width_stage4;
+
+    wire memif_we_stage3, memif_we_stage4;
+    wire io_we_stage3, io_we_stage4;
+    wire b_en_stage3;
+    wire [01:00] w_en_stage2, w_en_stage3, w_en_stage4;
 
     // Handle input metastability safely
-    always_ff @ (posedge clk)
+    always @ (posedge clk)
     begin
         pre_pre_reset <= !KEY[0];
         pre_reset <= pre_pre_reset;
@@ -33,6 +41,11 @@ module cri(
     rv32i_syncDualPortRam ramTest(      // Instantiate Dual Port RAM module
         .clk(clk),                      // Clock
         .i_addr(memIfAddr),             // Instruction Address                      | From ifTop module
+        .d_we(memif_we_stage4),         // Write enable                             | From memTop module
+        .d_be(memif_be_stage4),         // Bank enable                              | From memTop module
+        .d_addr(memif_addr_stage4),     // Write address                            | From memTop module
+        .d_wdata(rs2_data_stage4),      // Write data                               | From memTop module
+        .d_rdata(d_rdata),              // Read data                                | To memTop module
         .i_rdata(i_rdata)               // Read Instruction Word                    | To ifTop module
     );
 
@@ -94,12 +107,13 @@ module cri(
         .df_wb_reg(df_wb_reg),          // Forwaded values                          | From wbTop module
         .df_wb_data(df_wb_data),        // Forwaded values                          | From wbTop module
 
+        .src_sel_out(w_en_stage2),      // Write enable                             | To exTop module
         .wb_reg(wb_reg_stage2),         // Register to write into                   | To exTop module
         .wb_en_out(wb_en_stage2),       // Writeback enable/disable                 | To exTop module
         .iw_out(iw_stage2),             // Instruction Word                         | To exTop module
         .pc_out(pc_stage2),             // Program Counter                          | To exTop module
-        .rs1_data_out(rs1_data_out),    // Data                                     | To exTop module
-        .rs2_data_out(rs2_data_out)     // Data                                     | To exTop module
+        .rs1_data_out(rs1_data_stage2), // Data                                     | To exTop module
+        .rs2_data_out(rs2_data_stage2)  // Data                                     | To exTop module
     );
 
     rv32i_exTop exTopInstance(          // Instantiate ALU system
@@ -109,15 +123,18 @@ module cri(
         .pc_in(pc_stage2),              // Current Program Counter                  | From idTop module
         .iw_in(iw_stage2),              // Current Instruction Word                 | From idTop module
         .wb_en_in(wb_en_stage2),        // Writeback enable/disable                 | From idTop module
-        .rs1_data_in(rs1_data_out),     // Data to manipulate                       | From regFs module
-        .rs2_data_in(rs2_data_out),     // Data to manipulate                       | From regFs module
+        .rs1_data_in(rs1_data_stage2),  // Data to manipulate                       | From regFs module
+        .rs2_data_in(rs2_data_stage2),  // Data to manipulate                       | From regFs module
         .wb_reg_in(wb_reg_stage2),      // Writeback register                       | From idTop module
+        .src_sel_in(w_en_stage2),       // Write enable                             | From idTop module
 
         .alu_out(alu_out_stage3),       // Result of operations                     | To memTop & syncDualPortRam modules
         .pc_out(pc_stage3),             // Updated Program Counter                  | To memTop module
         .iw_out(iw_stage3),             // Updated Instruction Word                 | To memTop module
         .wb_en_out(wb_en_stage3),       // Writeback enable/disable                 | To memTop module
         .wb_reg_out(wb_reg_stage3),     // Writeback register                       | To memTop module
+        .src_sel_out(w_en_stage3),      // Write enable                             | To memTop module
+        .rs2_data_out(rs2_data_stage3), // Write data                               | To memTop module
 
         .df_ex_enable(df_ex_enable),    // Forwarded data to handle data hazards    | To idTop module
         .df_ex_reg(df_ex_reg),          // Forwarded data to handle data hazards    | To idTop module
@@ -133,16 +150,23 @@ module cri(
         .wb_reg_in(wb_reg_stage3),      // Destination register                     | From exTop module
         .alu_in(alu_out_stage3),        // Output from the ALU                      | From exTop module
         .wb_en_in(wb_en_stage3),        // Writeback enable/disable                 | From exTop module
+        .src_sel_in(w_en_stage3),       // Write enable                             | From exTop module
 
         .pc_out(pc_stage4),             // Updated Program Counter                  | To wbTop module
         .iw_out(iw_stage4),             // Updated Instruction Word                 | To wbTop module
         .wb_en_out(wb_en_stage4),       // Writeback enable/disable                 | To wbTop module
         .wb_reg_out(wb_reg_stage4),     // Destination register                     | To wbTop module
         .alu_out(alu_out_stage4),       // Writeback value                          | TO wbTop module
+        .src_sel_out(w_en_stage4),      // Write enable                             | To wbTop module
 
         .df_mem_enable(df_mem_enable),  // Forwarded data to handle data hazards    | To idTop module
         .df_mem_reg(df_mem_reg),        // Forwarded data to handle data hazards    | To idTop module
-        .df_mem_data(df_mem_data)       // Forwarded data to handle data hazards    | To idTop module
+        .df_mem_data(df_mem_data),      // Forwarded data to handle data hazards    | To idTop module
+
+        .memif_addr(memif_addr_stage4),     // Address                              | To syncDualPortRam modue
+        .memif_we(memif_we_stage4),         // Write enable                         | To syncDualPortRam modue
+        .memif_be(memif_be_stage4),         // Bank enable                          | To syncDualPortRam modue
+        .memif_wdata(rs2_data_stage4)       // Data                                 | To syncDualPortRam modue
     );
 
     rv32i_wbTop wbTopinstance(          // Instantiate WriteBack stage
@@ -152,6 +176,7 @@ module cri(
         .pc_in(pc_stage4),              // Current Program Counter                  | From memTop module
         .iw_in(iw_stage4),              // Current Instruction Word                 | From memTop module
         .wb_en_in(wb_en_stage4),        // Writeback enable/disable                 | From memTop module
+        .src_sel_in(w_en_stage4),       // Data source selector                     | From memTop module
         .wb_reg_in(wb_reg_stage4),      // Destination Register                     | From idTop module
         .alu_in(alu_out_stage4),        // Calculated output                        | From exTop module
 

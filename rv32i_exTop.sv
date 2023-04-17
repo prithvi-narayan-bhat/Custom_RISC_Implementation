@@ -10,11 +10,16 @@ module rv32i_exTop(
         input clk, reset, wb_en_in,                             // System Clock
         input reg [4:0] wb_reg_in,
         input [31:0] pc_in, iw_in, rs1_data_in, rs2_data_in,    // Inputs are received from the Instruction Decode stage
+        input [01:00] src_sel_in,                               // Write enable     | From idTop module
+
         output reg [31:0] alu_out, iw_out, pc_out, wb_en_out,   // To Memory
         output reg [4:0] wb_reg_out,
 
+        output [01:00] src_sel_out,                             // Data source selector | To memTop module
+        output reg [31:0] rs2_data_out,                         // Pass input data      | To memTop module
+
         // Forwarded data from exTop stage
-        output df_ex_enable,                // Writeback enable signal at the exTop stage
+        output df_ex_enable,     // Writeback enable signal at the exTop stage
         output reg [4:0] df_ex_reg,         // Writeback register at the exTop stage
         output reg [31:0] df_ex_data       // Writeback data at the exTop stage
     );
@@ -27,7 +32,7 @@ module rv32i_exTop(
     wire [6:0] i1    = {iw_in[31:25]};      // Extract encoding from Instruction Word
 
     // The operation can be determined by scrutinising opcode func3 and func7 bits. The following case blocks achieve this
-    always @ (func3, func7, shamt, opcde, reset, iw_in, rs1_data_in, rs2_data_in, pc_in, i1)
+    always @ (*)
 	 begin                              // Determine the operation to be performed from the opcode, func3 and func7
         case (opcde)
         /************************************************ R encoded instructions ******************************************************************/
@@ -216,7 +221,7 @@ module rv32i_exTop(
 
 
     // Trigger condition for latching onto D flip-flop = reset button press
-    always_ff @ (posedge(clk))
+    always @ (posedge(clk))
     begin
         if (reset)
         begin
@@ -236,7 +241,9 @@ module rv32i_exTop(
         end
     end
 
-    assign df_ex_enable = wb_en_out;        // Forwarded to idTop module
-    assign df_ex_reg    = wb_reg_out;       // Forwarded to idTop module
+    assign src_sel_out  = src_sel_in;       // Pass it on | to memTop module
+    assign rs2_data_out = rs2_data_in;      // Pass it on | to memTop module
+    assign df_ex_enable = wb_en_in;         // Forwarded to idTop module
+    assign df_ex_reg    = wb_reg_in;        // Forwarded to idTop module
     assign df_ex_data   = alu_temp;         // Forwarded to idTop module
 endmodule
