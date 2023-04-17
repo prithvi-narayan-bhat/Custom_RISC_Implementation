@@ -35,7 +35,7 @@ module rv32i_reg(
     */
     logic [31:0] register [32];                     // How registers are handled internally (saves a few lines of code)
 
-    always_ff @ (posedge clk)
+    always @ (posedge clk)
     begin
         if (reset)                                  // Set all registers to zero on reset button press
         begin

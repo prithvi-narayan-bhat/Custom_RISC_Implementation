@@ -18,7 +18,7 @@ module rv32i_ifTop(
     assign jump_en_int = jump_en_in;
 
     // set program counter
-    always_ff @ (posedge clk)
+    always @ (posedge clk)
     begin
         if (reset) pc <= 32'd0;                     // Reset Program Counter
         else

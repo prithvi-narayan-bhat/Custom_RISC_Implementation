@@ -12,7 +12,7 @@ module rv32i_memInterfaceTest(
 
     int counter = -1;
 
-    always_ff @ (posedge KEY[1])                // Trigger on posedge of Key press
+    always @ (posedge KEY[1])                // Trigger on posedge of Key press
     begin
         if (counter++ >= 5)     counter = -1;      // Reset counter
 

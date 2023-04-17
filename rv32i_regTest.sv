@@ -12,12 +12,12 @@ module rv32i_regTest(
     wire [4:0] wb_reg, rs1_reg, rs2_reg;
     wire [31:0] wb_data;
 
-    always_ff @ (posedge clk)
+    always @ (posedge clk)
     begin
         reset <= !KEY[1];
     end
 
-    always_ff @ (SW)
+    always @ (SW)
     begin
         case (SW[4:0])
             5'd0:
