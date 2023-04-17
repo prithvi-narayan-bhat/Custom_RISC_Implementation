@@ -10,12 +10,12 @@ module rv32i_exTop(
         input clk, reset, wb_en_in,                             // System Clock
         input reg [4:0] wb_reg_in,
         input [31:0] pc_in, iw_in, rs1_data_in, rs2_data_in,    // Inputs are received from the Instruction Decode stage
-        input [01:00] src_sel_in,                               // Write enable     | From idTop module
+        input w_en_in,                                          // mem/io write enable  | From idTop module
 
         output reg [31:0] alu_out, iw_out, pc_out, wb_en_out,   // To Memory
         output reg [4:0] wb_reg_out,
 
-        output [01:00] src_sel_out,                             // Data source selector | To memTop module
+        output w_en_out,                                        // mem/io write enable  | To memTop module
         output reg [31:0] rs2_data_out,                         // Pass input data      | To memTop module
 
         // Forwarded data from exTop stage
@@ -239,10 +239,11 @@ module rv32i_exTop(
             wb_reg_out <= wb_reg_in;        // Pass it on | to memTop module
             wb_en_out <= wb_en_in;          // Pass it on | to memTop module
         end
+
+        w_en_out        <= w_en_in;         // Pass it on | to memTop module
+        rs2_data_out    <= rs2_data_in;     // Pass it on | to memTop module
     end
 
-    assign src_sel_out  = src_sel_in;       // Pass it on | to memTop module
-    assign rs2_data_out = rs2_data_in;      // Pass it on | to memTop module
     assign df_ex_enable = wb_en_in;         // Forwarded to idTop module
     assign df_ex_reg    = wb_reg_in;        // Forwarded to idTop module
     assign df_ex_data   = alu_temp;         // Forwarded to idTop module

@@ -81,7 +81,7 @@ function logic [31:0] shifted_d_rdata(
         case (w)                            // Width determines the number of bits to sign-extend
             2'b00:      shifted_d_rdata = {{24{temp[07]}}, temp[07:00]};
             2'b01:      shifted_d_rdata = {{16{temp[15]}}, temp[15:00]};
-            2'b10:      shifted_d_rdata = {{08{temp[24]}}, temp[24:00]};
+            2'b10:      shifted_d_rdata = {{07{temp[24]}}, temp[24:00]};
             default:    shifted_d_rdata = temp;
         endcase
     end
@@ -91,7 +91,7 @@ function logic [31:0] shifted_d_rdata(
         case (w)                            // Width determines the number of bits to pad
             2'b00:      shifted_d_rdata = {24'b0, temp[07:00]};
             2'b01:      shifted_d_rdata = {16'b0, temp[15:00]};
-            2'b10:      shifted_d_rdata = {08'b0, temp[24:00]};
+            2'b10:      shifted_d_rdata = {07'b0, temp[24:00]};
             default:    shifted_d_rdata = temp;
         endcase
     end

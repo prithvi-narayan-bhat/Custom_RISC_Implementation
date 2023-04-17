@@ -24,7 +24,7 @@ module rv32i_idTop
         output reg [4:0] rs1_reg, rs2_reg, wb_reg,  // To Register interface
         output reg [31:0] pc_out, iw_out,           // To exTop
         output reg [31:00] rs1_data_out, rs2_data_out,
-        output reg [01:00] src_sel_out,             // Data source selector         | To exTop module
+        output w_en_out,                            // mem/io write enable  | To exTop module
 
         output jump_en_out,                         // Enable jump          | To ifTop module
         output reg [31:0] jump_addr                 // Address to jump to   | To ifTop module
@@ -98,10 +98,9 @@ module rv32i_idTop
         /*
             Memory interface handling
         */
-        if (reset)                      src_sel_out <= 0;               // Clear if reset
-        else if (opcode == 7'b0000011)  src_sel_out <= 1;               // Load Instructions
-        else if (opcode == 7'b0100011)  src_sel_out <= 2;               // Store Instructions
-        else                            src_sel_out <= 0;               // ALU output
+        if (reset)                      w_en_out <= 0;                  // Clear if reset
+        else if (opcode == 7'b0100011)  w_en_out <= 1;                  // Store Instructions
+        else                            w_en_out <= 0;                  // ALU output
 
         /* Data Forwarding
             Determine if data hazards exist by checking the following conditions:
