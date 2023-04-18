@@ -46,24 +46,30 @@ module rv32i_memTop(
         begin
             // io_we   <= 1;               // Enable io if alu_out[31] is 1
             memif_we  <= 0;             // Disable mem
-            src_sel_out = 2;            // Write to IO
         end
         else if (w_en_in && !alu_in[31])
         begin
             // io_we   <= 0;               // Disable io
             memif_we  <= 1;             // Enable mem if alu_out[31] is 0
-            src_sel_out = 1;            // Write to mem
         end
         else
         begin
             // io_we   <= 0;               // Leave nothing hanging
             memif_we  <= 0;             // Leave nothing hanging
-            src_sel_out = 0;            // Write to regFs
         end
+
+        if (!w_en_in)
+        begin
+            if (!alu_in[31])        src_sel_out <= 0;   // Memory
+            else if (alu_in[31])    src_sel_out <= 1;   // IO
+            else                    src_sel_out <= 2;   // ALU
+        end
+        else                        src_sel_out <= 2;   // ALU
+
 
     end
 
-    always @ (*)
+    always @ (posedge clk)
     begin
         if (reset)
         begin

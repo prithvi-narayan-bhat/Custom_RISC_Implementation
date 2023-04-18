@@ -64,11 +64,14 @@ module rv32i_idTop
 
         rs1_data_out <= rs1_int;                    // Assign fetched and/or forwarded data synchronously
         rs2_data_out <= rs2_int;                    // Assign fetched and/or forwarded data synchronously
-    end
 
-    // Determine if writeback must be enabled depending on the opcode in the Instruction Word
-    always @ (*)
-    begin
+        /*
+            Memory interface handling
+        */
+        if (reset)                      w_en_out <= 0;                  // Clear if reset
+        else if (opcode == 7'b0100011)  w_en_out <= 1;                  // Store Instructions
+        else                            w_en_out <= 0;                  // ALU output
+
         if (
 		        opcode == 7'b0100011 ||		        // SB, SH, SW
                 opcode == 7'b1100011 ||             // BEQ, BNE, BLT, BGE, BLTU, BGEU
@@ -77,9 +80,22 @@ module rv32i_idTop
                 opcode == 7'b0001111 ||             // FENCE
                 opcode == 7'b1110011                // EBREAK, ECALL
             )               wb_en_out <= 0;         // For instructions that don't require writebacks
+        else if (
+                opcode == 7'b0110011 ||             // R
+	            opcode == 7'b1100111 ||             // JALR
+	            opcode == 7'b0000011 ||             // L
+	            opcode == 7'b0010011 ||             // I
+	            opcode == 7'b0110111 ||             // L
+	            opcode == 7'b0010111 ||             // AUIPC
+	            opcode == 7'b1101111                // JAL instruction
+        )                   wb_en_out <= 1;         //
         else if (reset)     wb_en_out <= 0;         // Reset condition
-        else                wb_en_out <= 1;         // All others require writebacks
+        else                wb_en_out <= 0;         // Default condition
+    end
 
+    // Determine if writeback must be enabled depending on the opcode in the Instruction Word
+    always @ (*)
+    begin
         /* EBreak
             Set a flag if the Ebreak opcode is encountered
             The flag will be synchronously read in a parallel always block and acted upon
@@ -94,13 +110,6 @@ module rv32i_idTop
         if (reset)                      jump_en_out = 0;                // Regardless nobody jumps on reset
         else if (jump_en_in)            jump_en_out = 0;                // Indicates that the previous instruction was a jump
         else                            jump_en_out = jump_en_int;      // Set the jump
-
-        /*
-            Memory interface handling
-        */
-        if (reset)                      w_en_out <= 0;                  // Clear if reset
-        else if (opcode == 7'b0100011)  w_en_out <= 1;                  // Store Instructions
-        else                            w_en_out <= 0;                  // ALU output
 
         /* Data Forwarding
             Determine if data hazards exist by checking the following conditions:

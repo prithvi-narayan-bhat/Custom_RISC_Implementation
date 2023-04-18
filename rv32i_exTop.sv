@@ -8,12 +8,13 @@
 */
 module rv32i_exTop(
         input clk, reset, wb_en_in,                             // System Clock
-        input reg [4:0] wb_reg_in,
+        input [4:0] wb_reg_in,
         input [31:0] pc_in, iw_in, rs1_data_in, rs2_data_in,    // Inputs are received from the Instruction Decode stage
         input w_en_in,                                          // mem/io write enable  | From idTop module
 
-        output reg [31:0] alu_out, iw_out, pc_out, wb_en_out,   // To Memory
+        output reg [31:0] alu_out, iw_out, pc_out,              // To Memory
         output reg [4:0] wb_reg_out,
+        output wk_en_out,
 
         output w_en_out,                                        // mem/io write enable  | To memTop module
         output reg [31:0] rs2_data_out,                         // Pass input data      | To memTop module
@@ -229,7 +230,7 @@ module rv32i_exTop(
             iw_out <= 0;
             pc_out <= 0;
             wb_reg_out <= 0;
-            wb_en_out <= 0;
+            wk_en_out <= 0;
         end
         else
         begin
@@ -237,7 +238,7 @@ module rv32i_exTop(
             iw_out <= iw_in;                // Pass it on | to memTop module
             pc_out <= pc_in;                // Pass it on | to memTop module
             wb_reg_out <= wb_reg_in;        // Pass it on | to memTop module
-            wb_en_out <= wb_en_in;          // Pass it on | to memTop module
+            wk_en_out <= wb_en_in;          // Pass it on | to memTop module
         end
 
         w_en_out        <= w_en_in;         // Pass it on | to memTop module

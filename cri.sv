@@ -30,6 +30,7 @@ module cri(
     wire io_we_stage3, io_we_stage4;
     wire b_en_stage3;
     wire w_en_stage2, w_en_stage3, w_en_stage4;
+    wire [01:00] src_sel_stage4;
 
     // Handle input metastability safely
     always @ (posedge clk)
@@ -37,6 +38,7 @@ module cri(
         pre_pre_reset <= !KEY[0];
         pre_reset <= pre_pre_reset;
     end
+    assign reset = !pre_reset & pre_pre_reset;
 
     rv32i_syncDualPortRam ramTest(      // Instantiate Dual Port RAM module
         .clk(clk),                      // Clock
@@ -131,7 +133,7 @@ module cri(
         .alu_out(alu_out_stage3),       // Result of operations                     | To memTop & syncDualPortRam modules
         .pc_out(pc_stage3),             // Updated Program Counter                  | To memTop module
         .iw_out(iw_stage3),             // Updated Instruction Word                 | To memTop module
-        .wb_en_out(wb_en_stage3),       // Writeback enable/disable                 | To memTop module
+        .wk_en_out(wb_en_stage3),       // Writeback enable/disable                 | To memTop module
         .wb_reg_out(wb_reg_stage3),     // Writeback register                       | To memTop module
         .w_en_out(w_en_stage3),         // Write enable                             | To memTop module
         .rs2_data_out(rs2_data_stage3), // Write data                               | To memTop module
@@ -194,7 +196,5 @@ module cri(
         .df_wb_reg(df_wb_reg),          // Forwarded data to handle data hazards    | To idTop module
         .df_wb_data(df_wb_data)         // Forwarded data to handle data hazards    | To idTop module
     );
-
-    assign reset = pre_reset;
 
 endmodule
