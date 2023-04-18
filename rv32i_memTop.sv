@@ -26,7 +26,6 @@ module rv32i_memTop(
         // output [31:0] io_wdata,                     //  Write Data       | To ioTop module
 
         output [01:00] src_sel_out,                 // Source for writeback | To wbTop module
-        output w_en_out,                            // mem/io write enable  | To wbTop module
 
         // Forwarded data from memTop stage
         output df_mem_enable,               // Writeback enable signal at the exTop stage
@@ -39,9 +38,11 @@ module rv32i_memTop(
 
     wire [01:00] width = iw_in[13:12];      // Width
     wire [01:00] bank = alu_in[1:0];        // Extract bank from alu_in
+    wire [06:00] opcode = {iw_in[6:0]};     // Extract opcode from Instruction Word
 
-    always @ (*)
+    always @ (posedge clk)
     begin
+
         if (w_en_in && alu_in[31])
         begin
             // io_we   <= 1;               // Enable io if alu_out[31] is 1
@@ -60,17 +61,12 @@ module rv32i_memTop(
 
         if (!w_en_in)
         begin
-            if (!alu_in[31])        src_sel_out <= 0;   // Memory
-            else if (alu_in[31])    src_sel_out <= 1;   // IO
-            else                    src_sel_out <= 2;   // ALU
+            if (!alu_in[31] && opcode == 7'b0000011)        src_sel_out <= 0;   // Memory
+            else if (alu_in[31] && opcode == 7'b0100011)    src_sel_out <= 1;   // IO
+            else                                            src_sel_out <= 2;   // ALU
         end
-        else                        src_sel_out <= 2;   // ALU
+        else                                                src_sel_out <= 2;   // ALU
 
-
-    end
-
-    always @ (posedge clk)
-    begin
         if (reset)
         begin
             iw_out <= 0;                // Pass onto wbTop module
@@ -90,7 +86,6 @@ module rv32i_memTop(
     end
 
     assign memif_addr  = alu_in[31:02];     // Latch and pass   | To syncDualPortRam module
-    assign w_en_out = w_en_in;              // Latch and pass   | To syncDualPortRam module
 
     assign memif_be     = writeBankEnable(bank, width);         // Calculate bank enable signal
     assign memif_wdata  = shifted_rs2_data(rs2_data_in, bank);  // Format write data

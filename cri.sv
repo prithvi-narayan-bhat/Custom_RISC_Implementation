@@ -162,7 +162,6 @@ module cri(
         .wb_en_out(wb_en_stage4),       // Writeback enable/disable                 | To wbTop module
         .wb_reg_out(wb_reg_stage4),     // Destination register                     | To wbTop module
         .alu_out(alu_out_stage4),       // Writeback value                          | TO wbTop module
-        .w_en_out(w_en_stage4),         // Write enable                             | To wbTop module
         .memif_rdata_out(memif_rdata_stage4),   // Read data                        | To wbTop module
         .src_sel_out(src_sel_stage4),   // Desitnation selector                     | To wbTop module
 

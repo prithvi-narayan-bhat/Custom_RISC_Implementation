@@ -16,18 +16,18 @@ module rv32i_wbTop(
 
     wire [01:00] src_sel_int = src_sel_in;
 
-    always @ (posedge clk)
+    always @ (*)
     begin
         if (reset)  wb_en_out <= 0;
         else        wb_en_out <= wb_en_in;
 
+        wb_reg_out <= wb_reg_in;
+
         if (src_sel_int == 2'd2)        wb_data <= alu_in;      // Store output of exTop stage
         // else if (src_sel_int == 2'd1)   wb_data <= io_rdata;    // Store output of syncDualPortRam module
-        else if (src_sel_int == 2'd2)   wb_data <= memif_rdata; // Store output of ioTop module
-        else                            wb_data <= 0;
+        else if (src_sel_int == 2'd0)   wb_data <= memif_rdata; // Store output of ioTop module
+        else                            wb_data <= alu_in;
     end
-
-    assign wb_reg_out = wb_reg_in;
 
     assign df_wb_enable = wb_en_out;
     assign df_wb_reg    = wb_reg_out;
