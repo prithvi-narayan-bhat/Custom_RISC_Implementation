@@ -3,6 +3,7 @@ module rv32i_wbTop(
         input [4:0] wb_reg_in,              // From Insdtruction Decode: Writeback Register
         input [31:0] pc_in, iw_in, alu_in,  // From memTop
         input [31:00] memif_rdata,          // Data read from Memory        | From syncDualPortRam module
+        input [31:00] io_rdata,             // Data read from IO space      | From ioTop module
         input [01:00] src_sel_in,           // Data source selector         | From exTop module
         output wb_en_out,                   // To Register Interface: Enable/Disable writeback
         output reg [31:0] wb_data,          // To Register Interface: Writeback Data
@@ -24,7 +25,7 @@ module rv32i_wbTop(
         wb_reg_out <= wb_reg_in;
 
         if (src_sel_int == 2'd2)        wb_data <= alu_in;      // Store output of exTop stage
-        // else if (src_sel_int == 2'd1)   wb_data <= io_rdata;    // Store output of syncDualPortRam module
+        else if (src_sel_int == 2'd1)   wb_data <= io_rdata;    // Store output of syncDualPortRam module
         else if (src_sel_int == 2'd0)   wb_data <= memif_rdata; // Store output of ioTop module
         else                            wb_data <= alu_in;
     end
