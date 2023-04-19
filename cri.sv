@@ -14,7 +14,7 @@ module cri(
     wire [31:02] memIfAddr;
     wire [31:00] rs1_data, rs2_data, alu_out_stage3, alu_out_stage4, alu_out_stage5, i_rdata, d_rdata, wb_data;
     wire [31:00] iw_stage1, iw_stage2, iw_stage3,iw_stage4, pc_stage1, pc_stage2, pc_stage3, pc_stage4;
-    wire [31:00] rs1_data_stage2, rs2_data_stage2, rs2_data_stage3, rs2_data_stage4;
+    wire [31:00] rs1_data_stage2, rs2_data_stage2, rs2_data_stage3, rs2_data_io_stage4, rs2_data_me_stage4;
 
     wire df_ex_enable, df_mem_enable, df_wb_enable, jump_en_stage1, jump_en_stage2;
     wire [04:00] df_ex_reg, df_mem_reg, df_wb_reg;
@@ -26,11 +26,14 @@ module cri(
 
     wire [01:00] width_stage2, width_stage3, width_stage4;
 
-    wire memif_we_stage3, memif_we_stage4;
-    wire io_we_stage3, io_we_stage4;
+    wire memif_we_stage4;
+    wire io_we_stage4;
     wire b_en_stage3;
     wire w_en_stage2, w_en_stage3, w_en_stage4;
     wire [01:00] src_sel_stage4;
+    wire [03:00] io_be_stage4;
+    wire [31:02] io_addr_stage4;
+    wire [31:00] io_rdata;
 
     // Handle input metastability safely
     always @ (posedge clk)
@@ -46,9 +49,19 @@ module cri(
         .d_we(memif_we_stage4),         // Write enable                             | From memTop module
         .d_be(memif_be_stage4),         // Bank enable                              | From memTop module
         .d_addr(memif_addr_stage4),     // Write address                            | From memTop module
-        .d_wdata(rs2_data_stage4),      // Write data                               | From memTop module
+        .d_wdata(rs2_data_me_stage4),   // Write data                               | From memTop module
         .d_rdata(d_rdata),              // Read data                                | To memTop module
         .i_rdata(i_rdata)               // Read Instruction Word                    | To ifTop module
+    );
+
+    rv32i_ioTop ioTop(                  // Instantiate IO space
+        .clk(clk),                      // Clock
+        .reset(reset),                  // Reset
+        .KEY(KEY[1]),                   // Key                                      | From board
+
+        .io_addr(io_addr_stage4),       // Read/Write address                       | From memTop module
+        .io_wdata(rs2_data_io_stage4),     // Write data                               | From memTop module
+        .io_rdata(io_rdata)             // Read data                                | To memTop module
     );
 
     rv32i_reg regFsInstance (           // Instantiate Register File System
@@ -156,6 +169,7 @@ module cri(
         .rs2_data_in(rs2_data_stage3),  // Write data                               | From exTop module
 
         .memif_rdata(d_rdata),          // Read data                                | From syncDualPortRam module
+        .io_rdata(io_rdata),            // Read data                                | From ioTop module
 
         .pc_out(pc_stage4),             // Updated Program Counter                  | To wbTop module
         .iw_out(iw_stage4),             // Updated Instruction Word                 | To wbTop module
@@ -172,7 +186,11 @@ module cri(
         .memif_addr(memif_addr_stage4),     // Address                              | To syncDualPortRam modue
         .memif_we(memif_we_stage4),         // Write enable                         | To syncDualPortRam modue
         .memif_be(memif_be_stage4),         // Bank enable                          | To syncDualPortRam modue
-        .memif_wdata(rs2_data_stage4)       // Data                                 | To syncDualPortRam modue
+        .memif_wdata(rs2_data_me_stage4),   // Data                                 | To syncDualPortRam modue
+
+        .io_addr(io_addr_stage4),           // Address                              | To ioTop module
+        .io_we(io_we_stage4),               // Write enable                         | To ioTop module
+        .io_wdata(rs2_data_io_stage4)       // Data                                 | To ioTop module
     );
 
     rv32i_wbTop wbTopinstance(          // Instantiate WriteBack stage
@@ -184,6 +202,7 @@ module cri(
         .wb_en_in(wb_en_stage4),        // Writeback enable/disable                 | From memTop module
         .src_sel_in(src_sel_stage4),    // Data source selector                     | From memTop module
         .memif_rdata(memif_rdata_stage4),   // Read data                            | From memTop module
+        .io_rdata(io_rdata),            // Read data                                | From ioTop module
         .wb_reg_in(wb_reg_stage4),      // Destination Register                     | From idTop module
         .alu_in(alu_out_stage4),        // Calculated output                        | From exTop module
 

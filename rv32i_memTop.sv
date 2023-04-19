@@ -20,10 +20,9 @@ module rv32i_memTop(
         output [31:00] memif_rdata_out,             // Read data            | To syncDualPortRam module
 
         // IO Interface
-        // output io_we,                               //  Write enable     | To ioTop module
-        // output [3:0] io_be_out,                     //  Bank enable      | To ioTop module
-        // output [31:2] io_addr,                      //  Write address    | To ioTop module
-        // output [31:0] io_wdata,                     //  Write Data       | To ioTop module
+        output io_we,                               //  Write enable     | To ioTop module
+        output [31:2] io_addr,                      //  Write address    | To ioTop module
+        output [31:0] io_wdata,                     //  Write Data       | To ioTop module
 
         output [01:00] src_sel_out,                 // Source for writeback | To wbTop module
 
@@ -39,33 +38,50 @@ module rv32i_memTop(
     wire [01:00] width = iw_in[13:12];      // Width
     wire [01:00] bank = alu_in[1:0];        // Extract bank from alu_in
     wire [06:00] opcode = {iw_in[6:0]};     // Extract opcode from Instruction Word
+    wire [01:00] src_sel_int;
+
+    wire [03:00] memif_be_int;
+    wire [31:02] memif_addr_int;
+    wire [31:00] memif_wdata_int;
+
+    assign memif_addr_int   = alu_in[31:02];                        // Latch and pass   | To syncDualPortRam module
+    assign memif_be_int     = writeBankEnable(bank, width);         // Calculate bank enable signal
+    assign memif_wdata_int  = shifted_rs2_data(rs2_data_in, bank);  // Format write data
 
     always @ (posedge clk)
     begin
+        if (w_en_in && alu_in[31])          // Write to IO space
+        begin
+            io_we       <= 1;               // Enable io write
+            memif_we    <= 0;               // Disable mem write
 
-        if (w_en_in && alu_in[31])
-        begin
-            // io_we   <= 1;               // Enable io if alu_out[31] is 1
-            memif_we  <= 0;             // Disable mem
+            io_addr     <= memif_addr_int;  // Latch and pass
+            io_wdata    <= rs2_data_in;     // Latch and pass
         end
-        else if (w_en_in && !alu_in[31])
+
+        else if (w_en_in && !alu_in[31])    // Write to memory space
         begin
-            // io_we   <= 0;               // Disable io
-            memif_we  <= 1;             // Enable mem if alu_out[31] is 0
+            io_we       <= 0;               // Disable io write
+            memif_we    <= 1;               // Enable mem write
+
+            memif_addr  <= memif_addr_int;  // Latch and pass
+            memif_be    <= memif_be_int;    // Latch and pass
+            memif_wdata <= memif_wdata_int; // Latch and pass
         end
-        else
+
+        else if (!w_en_in && alu_in[31])    // Read from IO space
         begin
-            // io_we   <= 0;               // Leave nothing hanging
-            memif_we  <= 0;             // Leave nothing hanging
+            io_we   <= 0;                   // Leave nothing hanging
+            memif_we  <= 0;                 // Leave nothing hanging
         end
 
         if (!w_en_in)
         begin
-            if (!alu_in[31] && opcode == 7'b0000011)        src_sel_out <= 0;   // Memory
-            else if (alu_in[31] && opcode == 7'b0100011)    src_sel_out <= 1;   // IO
-            else                                            src_sel_out <= 2;   // ALU
+            if (!alu_in[31] && opcode == 7'b0000011)        src_sel_int <= 0;   // Memory
+            else if (alu_in[31] && opcode == 7'b0100011)    src_sel_int <= 1;   // IO
+            else                                            src_sel_int <= 2;   // ALU
         end
-        else                                                src_sel_out <= 2;   // ALU
+        else                                                src_sel_int <= 2;   // ALU
 
         if (reset)
         begin
@@ -74,6 +90,7 @@ module rv32i_memTop(
             alu_out <= 0;               // Pass onto wbTop module
             wb_en_out <= 0;             // Pass onto wbTop module
             wb_reg_out <= 0;
+            src_sel_out <= 0;           // Clear on reset
         end
         else
         begin
@@ -82,13 +99,9 @@ module rv32i_memTop(
             alu_out <= alu_in;          // Pass onto wbTop module
             wb_en_out <= wb_en_in;      // Pass onto wbTop module
             wb_reg_out <= wb_reg_in;
+            src_sel_out <= src_sel_int;     // Latch and pass
         end
     end
-
-    assign memif_addr  = alu_in[31:02];     // Latch and pass   | To syncDualPortRam module
-
-    assign memif_be     = writeBankEnable(bank, width);         // Calculate bank enable signal
-    assign memif_wdata  = shifted_rs2_data(rs2_data_in, bank);  // Format write data
 
     assign df_mem_enable = wb_en_out;
     assign df_mem_reg    = wb_reg_out;
