@@ -6,14 +6,20 @@ module rv32i_ioTop
         input [ADDR_WIDTH-1:0] io_addr, // Write address    | From memTop module
         input [31:00] io_wdata,         // Write Data       | From memTop module
 
-        output [9:0] LEDR,              // LEDs             | On board
-        output [32:00] io_rdata         // Read data        | To memTop module
+        output [09:00] led,             // LEDs             | On board
+        output reg [31:00] io_rdata     // Read data        | To memTop module
     );
 
     always @ (posedge clk)
     begin
-        if (!io_we)         io_rdata <= KEY;
-        else if (io_we)     LEDR <= io_wdata;
+        if (reset)  led <= 10'b0000000000;
+        else if (!reset)
+        begin
+            if (!io_we && !io_addr[0])      io_rdata <= KEY;
+            else if (io_we && io_addr[0])   led <= io_wdata;
+            else                            led <= 10'b0000000000;
+        end
+        else                                io_rdata <= 10'b0000000000;
     end
 
 endmodule

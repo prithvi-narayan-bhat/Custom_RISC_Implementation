@@ -3,7 +3,8 @@
 */
 module cri(
         input ADC_CLK_10,
-        input [1:0] KEY
+        input [1:0] KEY,
+        output reg [9:0] LEDR              // LEDs             | On board
     );
 
     wire clk = ADC_CLK_10;
@@ -34,6 +35,7 @@ module cri(
     wire [03:00] io_be_stage4;
     wire [31:02] io_addr_stage4;
     wire [31:00] io_rdata;
+    wire [09:00] led_data;
 
     // Handle input metastability safely
     always @ (posedge clk)
@@ -59,9 +61,11 @@ module cri(
         .reset(reset),                  // Reset
         .KEY(KEY[1]),                   // Key                                      | From board
 
+        .io_we(io_we_stage4),           // Write enable                             | From memTop module
         .io_addr(io_addr_stage4),       // Read/Write address                       | From memTop module
-        .io_wdata(rs2_data_io_stage4),     // Write data                               | From memTop module
-        .io_rdata(io_rdata)             // Read data                                | To memTop module
+        .io_wdata(rs2_data_io_stage4),  // Write data                               | From memTop module
+        .io_rdata(io_rdata),            // Read data                                | To memTop module
+        .led(LEDR[9:0])
     );
 
     rv32i_reg regFsInstance (           // Instantiate Register File System

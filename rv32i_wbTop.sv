@@ -15,6 +15,8 @@ module rv32i_wbTop(
         output reg [31:0] df_wb_data        // Writeback data at the wbTop stage
     );
 
+    wire [01:00] src_sel_int = src_sel_in;
+
     always @ (*)
     begin
         if (reset)  wb_en_out <= 0;
@@ -22,10 +24,10 @@ module rv32i_wbTop(
 
         wb_reg_out <= wb_reg_in;
 
-        if (src_sel_in == 2'd2)        wb_data <= alu_in;      // Store output of exTop stage
-        else if (src_sel_in == 2'd1)   wb_data <= io_rdata;    // Store output of syncDualPortRam module
-        else if (src_sel_in == 2'd0)   wb_data <= memif_rdata; // Store output of ioTop module
-        else                           wb_data <= alu_in;
+        if (src_sel_int == 2'd2)        wb_data <= alu_in;      // Store output of exTop stage
+        else if (src_sel_int == 2'd1)   wb_data <= io_rdata;    // Store output of syncDualPortRam module
+        else if (src_sel_int == 2'd0)   wb_data <= memif_rdata; // Store output of ioTop module
+        else                            wb_data <= alu_in;
     end
 
     assign df_wb_enable = wb_en_out;
