@@ -1,22 +1,23 @@
-/*
-    @module top_gun: The crux of ALU arithmatic
-    @param clk Input clock signal
-    @param pc_in Input Program Counter
-    @param rs1_data_in Input Argument 1 for ALU
-    @param rs2_data_in Input argument 2 for ALU
-    @param alu_out Output output of ALU arithmatic
-*/
 module rv32i_exTop(
         input clk, reset, wb_en_in,                             // System Clock
         input [4:0] wb_reg_in,
         input [31:0] pc_in, iw_in, rs1_data_in, rs2_data_in,    // Inputs are received from the Instruction Decode stage
         input w_en_in,                                          // mem/io write enable  | From idTop module
 
+        // Forwarded data from wbTop stage
+        input df_w_en_wb,                                       // Forwarded w_en       | From wbTop module
+        input [4:0] df_wb_reg,                                  // Forwarded wb_reg     | From wbTop module
+        input [31:0] df_wb_data,                                // Forwarded wb_data    | From wbTop module
+
+        // Forwarded data from memTop stage
+        input df_w_en_mem,                                      // Forwarded w_en       | From memTop module
+
         output reg [31:0] alu_out, iw_out, pc_out,              // To Memory
         output reg [4:0] wb_reg_out,
         output wk_en_out,
 
         output w_en_out,                                        // mem/io write enable  | To memTop module
+        output df_w_en_ex,                                      // Forwarded w_en_out   | To idTop module
         output reg [31:0] rs2_data_out,                         // Pass input data      | To memTop module
 
         // Forwarded data from exTop stage
@@ -248,4 +249,5 @@ module rv32i_exTop(
     assign df_ex_enable = wb_en_in;         // Forwarded to idTop module
     assign df_ex_reg    = wb_reg_in;        // Forwarded to idTop module
     assign df_ex_data   = alu_temp;         // Forwarded to idTop module
+    assign df_w_en_ex   = w_en_in;          // Forwarded to idTop module
 endmodule

@@ -24,12 +24,14 @@ module rv32i_memTop(
         output [31:02] io_addr,                     // Write address        | To ioTop module
         output [31:00] io_wdata,                    // Write Data           | To ioTop module
 
+        output w_en_out,                            // mem/io write enable  | To wbTop module
         output [01:00] src_sel_out,                 // Source for writeback | To wbTop module
 
         // Forwarded data from memTop stage
-        output df_mem_enable,               // Writeback enable signal at the exTop stage
-        output reg [4:0] df_mem_reg,        // Writeback register at the exTop stage
-        output reg [31:0] df_mem_data       // Writeback data at the exTop stage
+        output df_w_en_mem,                         // Forwarded w_en_out   | To idTop and exTop modules
+        output df_mem_enable,                       // Forwarded wb_en      | To idTop module
+        output reg [4:0] df_mem_reg,                // Forwarded wb_reg     | To idTop module
+        output reg [31:0] df_mem_data               // Forwarded wb_data    | To idTop module
     );
 
     // Include files
@@ -102,11 +104,13 @@ module rv32i_memTop(
             wb_en_out <= wb_en_in;      // Pass onto wbTop module
             wb_reg_out <= wb_reg_in;
             src_sel_out <= src_sel_int;
+            w_en_out    <= w_en_in;     // Latch and pass   | To wbTop module
         end
     end
 
     assign df_mem_enable = wb_en_out;
     assign df_mem_reg    = wb_reg_out;
     assign df_mem_data   = alu_out;
+    assign df_w_en_mem   = w_en_in;
 
 endmodule

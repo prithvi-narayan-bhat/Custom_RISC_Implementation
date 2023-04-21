@@ -5,6 +5,9 @@ module rv32i_idTop
         input [31:0] rs1_data_in, rs2_data_in,      // From Register interface
         input jump_en_in,                           // Form ifTop module
 
+        input df_w_en_ex,                           // Forwarded w_en       | From exTop module
+        input df_w_en_mem,                          // Forwarded w_en       | From memTop module
+
         // Forwarded data from exTop stage
         input df_ex_enable,                         // Writeback enable signal at the exTop stage
         input [4:0] df_ex_reg,                      // Writeback register at the exTop stage
