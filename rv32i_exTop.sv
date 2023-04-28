@@ -12,18 +12,18 @@ module rv32i_exTop(
         // Forwarded data from memTop stage
         input df_w_en_mem,                                      // Forwarded w_en       | From memTop module
 
-        output reg [31:0] alu_out, iw_out, pc_out,              // To Memory
-        output reg [4:0] wb_reg_out,
-        output wk_en_out,
-
+        output reg [31:0] alu_out, iw_out, pc_out,              // Standard signals     | To memTop module
+        output reg [4:0] wb_reg_out,                            // Writeback register   | To memTop module
+        output wk_en_out,                                       // Writeback enable     | To memTop module
         output w_en_out,                                        // mem/io write enable  | To memTop module
-        output df_w_en_ex,                                      // Forwarded w_en_out   | To idTop module
         output reg [31:0] rs2_data_out,                         // Pass input data      | To memTop module
 
         // Forwarded data from exTop stage
-        output df_ex_enable,     // Writeback enable signal at the exTop stage
-        output reg [4:0] df_ex_reg,         // Writeback register at the exTop stage
-        output reg [31:0] df_ex_data       // Writeback data at the exTop stage
+        output df_w_en_ex,                                      // Forwarded w_en_out   | To idTop module
+        output memio_w_ins_out,                                 // Instruction flag     | To idTop module
+        output df_ex_enable,                                    // Forwarded wb_enable  | To idTop module
+        output reg [4:0] df_ex_reg,                             // Forwarded wb_reg     | To idTop module
+        output reg [31:0] df_ex_data                            // Forwarded eb_data    | To idTop module
     );
 
     reg [31:0] alu_temp = 0;               // Internal storage
@@ -242,6 +242,7 @@ module rv32i_exTop(
             wk_en_out <= wb_en_in;          // Pass it on | to memTop module
         end
 
+        df_w_en_ex      <= w_en_in;         // Forwarded to idTop module
         w_en_out        <= w_en_in;         // Pass it on | to memTop module
         rs2_data_out    <= rs2_data_in;     // Pass it on | to memTop module
     end
@@ -249,5 +250,4 @@ module rv32i_exTop(
     assign df_ex_enable = wb_en_in;         // Forwarded to idTop module
     assign df_ex_reg    = wb_reg_in;        // Forwarded to idTop module
     assign df_ex_data   = alu_temp;         // Forwarded to idTop module
-    assign df_w_en_ex   = w_en_in;          // Forwarded to idTop module
 endmodule

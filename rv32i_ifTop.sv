@@ -4,6 +4,7 @@ module rv32i_ifTop(
 
         input jump_en_in,               // Enable jump          | From idTop module
         input [31:0] jump_addr,         // Address to jump to   | From idTop module
+        input pc_halt_in,               // PC halt flag         | From idTop module
 
         output reg [31:2] memIfAddr,    // To MemInterface
         output reg [31:0] iw_out,       // To ID
@@ -13,18 +14,23 @@ module rv32i_ifTop(
 
     reg [31:0] pc = 32'd0;
 
-    wire jump_en_int;
+    wire jump_en_int, pc_halt_int;
 
+    assign pc_halt_int = pc_halt_in;
     assign jump_en_int = jump_en_in;
 
     // set program counter
     always @ (posedge clk)
     begin
         if (reset) pc <= 32'd0;                     // Reset Program Counter
-        else
+        else if (!pc_halt_int)
         begin
             if (jump_en_int)    pc <= jump_addr;    // Set Jump destination
             else                pc <= pc + 32'd4;   // Increment Program Counter
+        end
+        else
+        begin
+            pc <= pc;                               // Do not increment Program Counter
         end
 
         pc_out <= pc;                               // Latch signal to output with a delay

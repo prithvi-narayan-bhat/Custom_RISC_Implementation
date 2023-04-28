@@ -37,6 +37,7 @@ module cri(
     wire [31:00] io_rdata;
     wire [09:00] led_data;
     wire df_w_en_ex, df_w_en_mem, df_w_en_wb;
+    wire memio_w_ins, pc_halt_stage2;
 
     // Handle input metastability safely
     always @ (posedge clk)
@@ -114,6 +115,7 @@ module cri(
 
         .jump_en_out(jump_en_stage2),   // Jump enable                              | To ifTop module
         .jump_addr(jump_addr),          // Jump destination                         | To ifTop module
+        .pc_halt_out(pc_halt_stage2),   // Halt incrementing PC                     | TO ifTop module
 
         .df_w_en_ex(df_w_en_ex),        // Forwarded value                          | From exTop module
         .df_w_en_mem(df_w_en_mem),      // Forwarded value                          | From memTop module

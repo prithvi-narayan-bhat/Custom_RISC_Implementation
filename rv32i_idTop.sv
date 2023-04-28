@@ -28,7 +28,9 @@ module rv32i_idTop
         output reg [31:0] pc_out, iw_out,           // To exTop
         output reg [31:00] rs1_data_out, rs2_data_out,
         output w_en_out,                            // mem/io write enable  | To exTop module
+        output halt_ex,
 
+        output pc_halt_out,                         // PC halt flag         | To ifTop module
         output jump_en_out,                         // Enable jump          | To ifTop module
         output reg [31:0] jump_addr                 // Address to jump to   | To ifTop module
     );
@@ -36,10 +38,13 @@ module rv32i_idTop
     assign rs1_reg = iw_in[19:15];                  // Calculate rs1 from Instruction Word
     assign rs2_reg = iw_in[24:20];                  // Calculate rs2 from Instruction Word
 
-	reg halt_ex, jump_en_flag, jump_en_int;
+	reg /*halt_ex,*/ jump_en_flag, jump_en_int;
     reg [31:00] rs1_int, rs2_int;
 
     wire [6:0] opcode = {iw_in[6:0]};               // Extract opcode from Instruction Word
+
+    reg [01:00] halt_ex_2cycles;
+    reg [31:00] pc_current;
 
     always @ (posedge clk)
     begin
@@ -47,6 +52,18 @@ module rv32i_idTop
         if (reset)  iw_out <= 0;
 
         else if (halt_ex)   iw_out <= 32'h13;       // Set as no-op if flag is encountered
+
+        else if (halt_ex_2cycles[0])
+        begin
+            halt_ex_2cycles[0] <= 0;
+            iw_out <= 32'h13;
+        end
+
+        else if (halt_ex_2cycles[1])
+        begin
+            halt_ex_2cycles[1] <= 0;
+            iw_out <= 32'h13;
+        end
 
         else if (jump_en_int)
         begin
@@ -88,17 +105,45 @@ module rv32i_idTop
 	            opcode == 7'b1100111 ||             // JALR
 	            opcode == 7'b0000011 ||             // L
 	            opcode == 7'b0010011 ||             // I
-	            opcode == 7'b0110111 ||             // L
+	            opcode == 7'b0110111 ||             // LUI
 	            opcode == 7'b0010111 ||             // AUIPC
 	            opcode == 7'b1101111                // JAL instruction
         )                   wb_en_out <= 1;         //
         else if (reset)     wb_en_out <= 0;         // Reset condition
         else                wb_en_out <= 0;         // Default condition
+
+        if (df_w_en_ex)
+        begin
+            halt_ex_2cycles <= 2'd3;
+
+            if (halt_ex_2cycles[0] && halt_ex_2cycles[1])
+            begin
+                pc_halt_out = 1;
+                pc_current = pc_in;
+            end
+
+            else if (halt_ex_2cycles[1])
+            begin
+                pc_halt_out = 1;
+                pc_current = pc_in;
+            end
+        end
+
+        else
+        begin
+            pc_halt_out = 0;
+            pc_current = pc_in;
+        end
+
     end
 
     // Determine if writeback must be enabled depending on the opcode in the Instruction Word
     always @ (*)
     begin
+        /* Memory and IO operation Hazard handling
+            If instruction in exTop deals with memory,
+        */
+
         /* EBreak
             Set a flag if the Ebreak opcode is encountered
             The flag will be synchronously read in a parallel always block and acted upon

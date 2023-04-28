@@ -6,32 +6,22 @@
 .equ LED_ADDR, 0x80000004
 
 _start:
-        addi    t3, t3, 512
-        addi    t5, t5, 0
-        addi    t4, t4, 0
-
-        lui     t2, %hi(LED_ADDR)               # Load the upper bits of address of KEY into t0
-        addi    t2, t2, 4                       # Load the offset of LEDs into t2
-
-        lui     t0, %hi(PUSH_BUTTON_ADDR)       # Load the upper bits of address of KEY into t0
-        # addi    t0, t0, 0                       # Load the offset of KEY into t0
-
-loop:   lw      t1, 0(t0)                       # Load the state of KEY to t1
-
         nop
         nop
-        nop
-
-        beq     t1, t4, jump                    # Branch on equal
-        j       exi                             # Unconditional jump
-
-jump:   sw      t3, 0(t2)                       # Store value into LEDs
-        nop
-        nop
-        nop
-        j       loop                            # Unconditional jump
-
-exi:    sw      t5, 0(t2)                       # Update LEDs
+        ADDI    t1, zero, 0x200
+	ADDI    t2, zero, 0x20
+	SB  	 t2, 1(t1) 
+	ADDI    t2, zero, 1010
+	SH      t2, 12(t1)
+	LUI     t2, 0x12345
+	ADDI    t2, t2, 0x678
+	SW	 t2, 4(t1)
+	ADDI	 t2, zero, -40
+	SB      t2, 22(t1)
+	LB      t3, 1(t1)
+	LH      t4, 12(t1)
+	LB      t6, 22(t1)
+	LW      t5, 4(t1)
         ebreak
 
 .end

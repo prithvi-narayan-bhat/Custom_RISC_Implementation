@@ -1,10 +1,7 @@
 #!/bin/bash
 
-echo "Compiling now.."
-
 if [ $# -le 1 ];
 then
-    echo "compiling now.."
     riscv32-unknown-elf-gcc -o cri_asm cri_asm.s -ffreestanding -nostdlib -march=rv32i -mabi=ilp32
 
     riscv32-unknown-elf-objdump -dr cri_asm > cri_asm.asm_dump
